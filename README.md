@@ -149,7 +149,9 @@ graph LR
 - **Backend Testing**: JUnit / Spring Boot Test
 - **Frontend Package Management**: npm
 - **API Communication**: REST over HTTP/HTTPS
-- ### Infrastructure & Operations
+  
+### Infrastructure & Operations
+
 - **Containerization**: Docker & Docker Compose
 - **Database Container**: PostgreSQL 16 Alpine
 
