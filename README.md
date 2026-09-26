@@ -4,6 +4,7 @@ StockSense is a robust, full-stack Enterprise Inventory Management System design
 
 Built with Java 21, Spring Boot 3.3.4, PostgreSQL, and React with TypeScript, StockSense provides enterprise-grade scalability, immutable inventory event tracking, and intuitive user workflows for warehouse managers and operational staff.
 
+
 ---
 
 ## Table of Contents
@@ -111,22 +112,44 @@ graph LR
 ## Technology Stack
 
 ### Backend
+
+- **Programming Language**: Java 21
 - **Framework**: Spring Boot 3.3.4
-- **Language**: Java 21
-- **Persistence**: Spring Data JPA / Hibernate
-- **Database**: PostgreSQL 16 (Runtime) / H2 (Testing)
-- **Security & Crypto**: Spring Security Crypto (BCrypt password encoder)
-- **Email Notifications**: Spring Boot Mail / JavaMail
+- **Persistence Layer**: Spring Data JPA / Hibernate
+- **Database**: PostgreSQL 16
+- **Testing Database**: H2
+- **Security**: Spring Security Crypto
+- **Password Hashing**: BCrypt
+- **Email Services**: Spring Boot Mail / JavaMail
+- **API Architecture**: RESTful APIs
+- **Transaction Management**: Spring `@Transactional`
 
 ### Frontend
+
 - **Framework**: React 18.3
-- **Language**: TypeScript 5.6
+- **Programming Language**: TypeScript 5.6
 - **Build Tool**: Vite 5.4
 - **HTTP Client**: Axios 1.7
-- **Iconography**: Lucide React
-- **Routing & State**: React Router DOM 7, Custom React Hooks & Context
+- **Routing**: React Router DOM 7
+- **State Management**: React Hooks & Context API
+- **UI Icons**: Lucide React
+- **Architecture**: Single Page Application (SPA)
 
-### Infrastructure & Operations
+### Database & Infrastructure
+
+- **Database**: PostgreSQL 16
+- **Database Testing**: H2
+- **Containerization**: Docker
+- **Container Orchestration**: Docker Compose
+- **Database Container**: PostgreSQL 16 Alpine
+
+### Development & Testing
+
+- **Build & Dependency Management**: Maven
+- **Backend Testing**: JUnit / Spring Boot Test
+- **Frontend Package Management**: npm
+- **API Communication**: REST over HTTP/HTTPS
+- ### Infrastructure & Operations
 - **Containerization**: Docker & Docker Compose
 - **Database Container**: PostgreSQL 16 Alpine
 
@@ -178,11 +201,17 @@ StockSense/
 
 ## Data Integrity & Stock Ledger Model
 
-StockSense enforces financial-grade double-entry principles for stock management:
+StockSense follows **double-entry principles for inventory management** to maintain accurate, consistent, and auditable stock records.
 
-- **Immutability**: Stock ledger entries cannot be modified or deleted once persisted. Any corrections require an offsetting adjustment entry.
-- **Atomic State Modifications**: Inventory balance updating operations execute within transactional boundaries (`@Transactional`). If any step in a transfer or delivery fails, all ledger and balance changes roll back automatically.
-- **Traceability**: Every quantity shift records the source location ID, target location ID, reference order ID, operating user, timestamp, and resulting balance state.
+- **Immutability**: Stock ledger entries cannot be modified or deleted once persisted. Any correction is recorded through a new offsetting adjustment entry, preserving the original transaction history.
+
+- **Atomic State Modifications**: Inventory-changing operations are executed within transactional boundaries using Spring's `@Transactional`. If any step in a transfer, receipt, delivery, or adjustment fails, the associated inventory and ledger changes are rolled back to maintain data consistency.
+
+- **Traceability**: Every inventory movement records essential information such as the product/SKU, source location, destination location, reference order, operating user, quantity, timestamp, and resulting inventory balance.
+
+- **Auditability**: All stock movements are recorded in the ledger, providing a complete historical trail for inventory reconciliation, operational monitoring, and audit purposes.
+
+- **Consistency**: Inventory balances and corresponding ledger entries are updated together, ensuring that stock quantities remain synchronized with their transaction history.
 
 ---
 
