@@ -108,22 +108,44 @@ graph LR
 ## Technology Stack
 
 ### Backend
+
+- **Programming Language**: Java 21
 - **Framework**: Spring Boot 3.3.4
-- **Language**: Java 21
-- **Persistence**: Spring Data JPA / Hibernate
-- **Database**: PostgreSQL 16 (Runtime) / H2 (Testing)
-- **Security & Crypto**: Spring Security Crypto (BCrypt password encoder)
-- **Email Notifications**: Spring Boot Mail / JavaMail
+- **Persistence Layer**: Spring Data JPA / Hibernate
+- **Database**: PostgreSQL 16
+- **Testing Database**: H2
+- **Security**: Spring Security Crypto
+- **Password Hashing**: BCrypt
+- **Email Services**: Spring Boot Mail / JavaMail
+- **API Architecture**: RESTful APIs
+- **Transaction Management**: Spring `@Transactional`
 
 ### Frontend
+
 - **Framework**: React 18.3
-- **Language**: TypeScript 5.6
+- **Programming Language**: TypeScript 5.6
 - **Build Tool**: Vite 5.4
 - **HTTP Client**: Axios 1.7
-- **Iconography**: Lucide React
-- **Routing & State**: React Router DOM 7, Custom React Hooks & Context
+- **Routing**: React Router DOM 7
+- **State Management**: React Hooks & Context API
+- **UI Icons**: Lucide React
+- **Architecture**: Single Page Application (SPA)
 
-### Infrastructure & Operations
+### Database & Infrastructure
+
+- **Database**: PostgreSQL 16
+- **Database Testing**: H2
+- **Containerization**: Docker
+- **Container Orchestration**: Docker Compose
+- **Database Container**: PostgreSQL 16 Alpine
+
+### Development & Testing
+
+- **Build & Dependency Management**: Maven
+- **Backend Testing**: JUnit / Spring Boot Test
+- **Frontend Package Management**: npm
+- **API Communication**: REST over HTTP/HTTPS
+- ### Infrastructure & Operations
 - **Containerization**: Docker & Docker Compose
 - **Database Container**: PostgreSQL 16 Alpine
 
