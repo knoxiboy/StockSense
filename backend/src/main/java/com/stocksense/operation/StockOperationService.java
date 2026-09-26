@@ -4,6 +4,8 @@ import com.stocksense.common.exception.ConflictException;
 import com.stocksense.common.exception.ResourceNotFoundException;
 import com.stocksense.inventory.StockBalance;
 import com.stocksense.inventory.StockBalanceRepository;
+import com.stocksense.ledger.StockLedgerEntry;
+import com.stocksense.ledger.StockLedgerRepository;
 import com.stocksense.operation.dto.CreateAdjustmentRequest;
 import com.stocksense.operation.dto.CreateDeliveryRequest;
 import com.stocksense.operation.dto.CreateReceiptRequest;
@@ -27,13 +29,16 @@ public class StockOperationService {
     private final ProductRepository productRepository;
     private final StockBalanceRepository stockBalanceRepository;
     private final StockOperationRepository stockOperationRepository;
+    private final StockLedgerRepository stockLedgerRepository;
 
     public StockOperationService(ProductRepository productRepository,
                                  StockBalanceRepository stockBalanceRepository,
-                                 StockOperationRepository stockOperationRepository) {
+                                 StockOperationRepository stockOperationRepository,
+                                 StockLedgerRepository stockLedgerRepository) {
         this.productRepository = productRepository;
         this.stockBalanceRepository = stockBalanceRepository;
         this.stockOperationRepository = stockOperationRepository;
+        this.stockLedgerRepository = stockLedgerRepository;
     }
 
     @Transactional
@@ -48,8 +53,9 @@ public class StockOperationService {
         // Acquire pessimistic write lock within transaction
         StockBalance balance = getOrCreateLockedBalance(product);
 
+        BigDecimal previousQuantity = balance.getQuantity();
         BigDecimal quantityChange = quantity;
-        BigDecimal newBalance = balance.getQuantity().add(quantity);
+        BigDecimal newBalance = previousQuantity.add(quantity);
         balance.setQuantity(newBalance);
         stockBalanceRepository.save(balance);
 
@@ -61,9 +67,20 @@ public class StockOperationService {
                 request.getReference(),
                 request.getNotes()
         );
-        StockOperation saved = stockOperationRepository.save(operation);
+        StockOperation savedOperation = stockOperationRepository.save(operation);
 
-        return StockOperationResponse.fromEntity(saved, newBalance);
+        // Atomic creation of immutable ledger entry in the same transaction
+        StockLedgerEntry ledgerEntry = new StockLedgerEntry(
+                savedOperation,
+                product,
+                OperationType.RECEIPT,
+                quantityChange,
+                previousQuantity,
+                newBalance
+        );
+        stockLedgerRepository.save(ledgerEntry);
+
+        return StockOperationResponse.fromEntity(savedOperation, newBalance);
     }
 
     @Transactional
@@ -77,17 +94,18 @@ public class StockOperationService {
 
         // Acquire pessimistic write lock before evaluating stock availability
         StockBalance balance = getOrCreateLockedBalance(product);
+        BigDecimal previousQuantity = balance.getQuantity();
 
-        if (balance.getQuantity().compareTo(quantity) < 0) {
+        if (previousQuantity.compareTo(quantity) < 0) {
             throw new ConflictException(String.format(
                     "Insufficient stock for product '%s' (SKU: %s). Requested: %s %s, Available: %s %s.",
                     product.getName(), product.getSku(), quantity, product.getUnit(),
-                    balance.getQuantity(), product.getUnit()
+                    previousQuantity, product.getUnit()
             ));
         }
 
         BigDecimal quantityChange = quantity.negate();
-        BigDecimal newBalance = balance.getQuantity().subtract(quantity);
+        BigDecimal newBalance = previousQuantity.subtract(quantity);
         balance.setQuantity(newBalance);
         stockBalanceRepository.save(balance);
 
@@ -99,9 +117,20 @@ public class StockOperationService {
                 request.getReference(),
                 request.getNotes()
         );
-        StockOperation saved = stockOperationRepository.save(operation);
+        StockOperation savedOperation = stockOperationRepository.save(operation);
 
-        return StockOperationResponse.fromEntity(saved, newBalance);
+        // Atomic creation of immutable ledger entry in the same transaction
+        StockLedgerEntry ledgerEntry = new StockLedgerEntry(
+                savedOperation,
+                product,
+                OperationType.DELIVERY,
+                quantityChange,
+                previousQuantity,
+                newBalance
+        );
+        stockLedgerRepository.save(ledgerEntry);
+
+        return StockOperationResponse.fromEntity(savedOperation, newBalance);
     }
 
     @Transactional
@@ -129,9 +158,20 @@ public class StockOperationService {
                 request.getReference(),
                 request.getNotes()
         );
-        StockOperation saved = stockOperationRepository.save(operation);
+        StockOperation savedOperation = stockOperationRepository.save(operation);
 
-        return StockOperationResponse.fromEntity(saved, countedQuantity);
+        // Atomic creation of immutable ledger entry in the same transaction
+        StockLedgerEntry ledgerEntry = new StockLedgerEntry(
+                savedOperation,
+                product,
+                OperationType.ADJUSTMENT,
+                quantityChange,
+                previousQuantity,
+                countedQuantity
+        );
+        stockLedgerRepository.save(ledgerEntry);
+
+        return StockOperationResponse.fromEntity(savedOperation, countedQuantity);
     }
 
     @Transactional(readOnly = true)

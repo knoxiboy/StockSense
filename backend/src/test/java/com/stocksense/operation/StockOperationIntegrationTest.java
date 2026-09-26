@@ -44,10 +44,14 @@ class StockOperationIntegrationTest {
     @Autowired
     private StockOperationRepository stockOperationRepository;
 
+    @Autowired
+    private com.stocksense.ledger.StockLedgerRepository stockLedgerRepository;
+
     private Product testProduct;
 
     @BeforeEach
     void setUp() {
+        stockLedgerRepository.deleteAll();
         stockOperationRepository.deleteAll();
         stockBalanceRepository.deleteAll();
         productRepository.deleteAll();

@@ -37,6 +37,9 @@ class StockOperationServiceTest {
     @Mock
     private StockOperationRepository stockOperationRepository;
 
+    @Mock
+    private com.stocksense.ledger.StockLedgerRepository stockLedgerRepository;
+
     @InjectMocks
     private StockOperationService stockOperationService;
 
@@ -84,6 +87,7 @@ class StockOperationServiceTest {
 
         verify(stockBalanceRepository).save(sampleBalance);
         verify(stockOperationRepository).save(any(StockOperation.class));
+        verify(stockLedgerRepository).save(any(com.stocksense.ledger.StockLedgerEntry.class));
     }
 
     @Test
@@ -110,6 +114,7 @@ class StockOperationServiceTest {
 
         verify(stockBalanceRepository).save(sampleBalance);
         verify(stockOperationRepository).save(any(StockOperation.class));
+        verify(stockLedgerRepository).save(any(com.stocksense.ledger.StockLedgerEntry.class));
     }
 
     @Test
@@ -126,6 +131,7 @@ class StockOperationServiceTest {
         assertEquals(new BigDecimal("20.0000"), sampleBalance.getQuantity());
         verify(stockBalanceRepository, never()).save(any(StockBalance.class));
         verify(stockOperationRepository, never()).save(any(StockOperation.class));
+        verify(stockLedgerRepository, never()).save(any(com.stocksense.ledger.StockLedgerEntry.class));
     }
 
     @Test
@@ -153,6 +159,7 @@ class StockOperationServiceTest {
 
         verify(stockBalanceRepository).save(sampleBalance);
         verify(stockOperationRepository).save(any(StockOperation.class));
+        verify(stockLedgerRepository).save(any(com.stocksense.ledger.StockLedgerEntry.class));
     }
 
     @Test
