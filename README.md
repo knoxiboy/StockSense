@@ -62,34 +62,25 @@ The system establishes strict Role-Based Access Control (RBAC) separating admini
 
 ```mermaid
 graph LR
-    subgraph System_Roles["System Roles"]
+    subgraph Roles["System Roles"]
         Worker["Warehouse Worker"]
         Manager["Warehouse Manager"]
     end
 
-    subgraph System_Use_Cases["Core System Use Cases"]
-        UC1["Account & Profile Authentication"]
-        UC2["Dashboard KPIs & Low Stock Alerts"]
-        UC3["Inbound Receipts & Outbound Deliveries"]
-        UC4["Internal Location Stock Transfers"]
-        UC5["Physical Stock Counts & Adjustments"]
-        UC6["Product Catalog & Warehouse Configuration"]
-        UC7["Double-Entry Stock Ledger Auditing"]
+    subgraph Capabilities["Core System Capabilities"]
+        UC1["Dashboard & Inventory Monitoring"]
+        UC2["Stock Logistics & Operations"]
+        UC3["Product & Warehouse Configuration"]
+        UC4["Audit Ledger & Governance"]
     end
 
     Worker --> UC1
     Worker --> UC2
-    Worker --> UC3
-    Worker --> UC4
-    Worker --> UC5
 
     Manager --> UC1
     Manager --> UC2
     Manager --> UC3
     Manager --> UC4
-    Manager --> UC5
-    Manager --> UC6
-    Manager --> UC7
 ```
 
 ### Role Capabilities Summary
