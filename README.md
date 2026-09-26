@@ -30,65 +30,28 @@ StockSense follows a multi-tier decoupled architecture with a React Single-Page 
 
 ```mermaid
 graph TD
-    subgraph Client_Tier["Client Tier"]
-        UI["React Single Page Application"]
-        State["React Hooks & State Management"]
-        AxiosClient["Axios HTTP Client Service"]
+    subgraph Client_Tier["Client Tier (Frontend)"]
+        SPA["React Single Page Application"]
+        Axios["Axios HTTP Service"]
     end
 
-    subgraph Security_Layer["Security Layer"]
-        AuthFilter["Auth Interceptor & Token Verifier"]
-        UserCtx["Thread-Local User Context"]
+    subgraph Backend_Tier["Backend Tier (Spring Boot 3.3 / Java 21)"]
+        REST["REST API Controllers"]
+        Security["Auth Interceptor & Token Verification"]
+        Services["Domain Services (Products, Orders, Ledger)"]
+        JPA["Spring Data JPA"]
     end
 
-    subgraph Backend_Tier["Backend Application Tier (Spring Boot 3.3.4 / Java 21)"]
-        REST["REST Controllers"]
-        
-        subgraph Domain_Services["Domain Business Services"]
-            AuthSvc["Auth & Email Notification Service"]
-            ProductSvc["Product & Inventory Service"]
-            WarehouseSvc["Warehouse & Location Service"]
-            ReceiptSvc["Receipt Order Service"]
-            DeliverySvc["Delivery Order Service"]
-            TransferSvc["Internal Transfer Service"]
-            OperationSvc["Stock Operation & Adjustment Service"]
-            LedgerSvc["Immutable Stock Ledger Service"]
-            DashboardSvc["Analytics & KPI Dashboard Service"]
-        end
-
-        JPA["Spring Data JPA Repositories"]
-    end
-
-    subgraph Persistence_Tier["Persistence Tier"]
+    subgraph Database_Tier["Database Tier"]
         DB[("PostgreSQL 16 Database")]
-        LedgerTable["Immutable Stock Ledger Audit Log"]
     end
 
-    UI --> State
-    State --> AxiosClient
-    AxiosClient -->|"HTTPS REST API / JSON"| REST
-    REST --> AuthFilter
-    AuthFilter --> UserCtx
-    UserCtx --> AuthSvc
-    UserCtx --> ProductSvc
-    UserCtx --> WarehouseSvc
-    UserCtx --> ReceiptSvc
-    UserCtx --> DeliverySvc
-    UserCtx --> TransferSvc
-    UserCtx --> OperationSvc
-    UserCtx --> LedgerSvc
-    UserCtx --> DashboardSvc
-    AuthSvc --> JPA
-    ProductSvc --> JPA
-    WarehouseSvc --> JPA
-    ReceiptSvc --> JPA
-    DeliverySvc --> JPA
-    TransferSvc --> JPA
-    OperationSvc --> JPA
-    LedgerSvc --> JPA
-    DashboardSvc --> JPA
+    SPA --> Axios
+    Axios -->|"HTTPS / REST API"| REST
+    REST --> Security
+    Security --> Services
+    Services --> JPA
     JPA --> DB
-    LedgerSvc --> LedgerTable
 ```
 
 ---
@@ -99,66 +62,34 @@ The system establishes strict Role-Based Access Control (RBAC) separating admini
 
 ```mermaid
 graph LR
-    subgraph Roles["System Roles"]
+    subgraph System_Roles["System Roles"]
+        Worker["Warehouse Worker"]
         Manager["Warehouse Manager"]
-        Worker["Warehouse Staff / Worker"]
     end
 
-    subgraph Auth_UC["Identity & User Governance"]
-        UC_Auth1["Register & Authenticate Account"]
-        UC_Auth2["Verify Email via OTP Code"]
-        UC_Auth3["Manage User Profile & Password"]
-        UC_Auth4["Review & Approve Worker Registrations"]
+    subgraph System_Use_Cases["Core System Use Cases"]
+        UC1["Account & Profile Authentication"]
+        UC2["Dashboard KPIs & Low Stock Alerts"]
+        UC3["Inbound Receipts & Outbound Deliveries"]
+        UC4["Internal Location Stock Transfers"]
+        UC5["Physical Stock Counts & Adjustments"]
+        UC6["Product Catalog & Warehouse Configuration"]
+        UC7["Double-Entry Stock Ledger Auditing"]
     end
 
-    subgraph Inventory_UC["Catalog & Analytics"]
-        UC_Inv1["Monitor Dashboard KPIs & Stock Valuation"]
-        UC_Inv2["Manage SKU Catalog & Price Attributes"]
-        UC_Inv3["Track Low Stock & Reorder Alerts"]
-    end
+    Worker --> UC1
+    Worker --> UC2
+    Worker --> UC3
+    Worker --> UC4
+    Worker --> UC5
 
-    subgraph Warehouse_UC["Warehouse Infrastructure"]
-        UC_Wh1["Configure Warehouses & Storage Racks"]
-        UC_Wh2["Manage Virtual Vendor & Customer Locations"]
-    end
-
-    subgraph Logistics_UC["Stock Movements & Operations"]
-        UC_Op1["Process Inbound Supplier Receipts"]
-        UC_Op2["Process Outbound Customer Deliveries"]
-        UC_Op3["Execute Internal Location Transfers"]
-        UC_Op4["Perform Physical Stock Counts & Adjustments"]
-    end
-
-    subgraph Audit_UC["Audit & System Governance"]
-        UC_Audit1["Audit Immutable Double-Entry Stock Ledger"]
-        UC_Audit2["Review Historical Stock Balance Trajectory"]
-    end
-
-    Worker --> UC_Auth1
-    Worker --> UC_Auth2
-    Worker --> UC_Auth3
-    Worker --> UC_Inv1
-    Worker --> UC_Inv3
-    Worker --> UC_Op1
-    Worker --> UC_Op2
-    Worker --> UC_Op3
-    Worker --> UC_Op4
-
-    Manager --> UC_Auth1
-    Manager --> UC_Auth2
-    Manager --> UC_Auth3
-    Manager --> UC_Auth4
-    Manager --> UC_Inv1
-    Manager --> UC_Inv2
-    Manager --> UC_Inv3
-    Manager --> UC_Wh1
-    Manager --> UC_Wh2
-    Manager --> UC_Op1
-    Manager --> UC_Op2
-    Manager --> UC_Op3
-    Manager --> UC_Op4
-    Manager --> UC_Audit1
-    Manager --> UC_Audit2
+    Manager --> UC1
+    Manager --> UC2
+    Manager --> UC3
+    Manager --> UC4
+    Manager --> UC5
+    Manager --> UC6
+    Manager --> UC7
 ```
 
 ### Role Capabilities Summary
