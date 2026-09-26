@@ -26,7 +26,11 @@ Built with Java 21, Spring Boot 3.3.4, PostgreSQL, and React with TypeScript, St
 
 ## System Architecture
 
-StockSense follows a multi-tier decoupled architecture with a React Single-Page Application (SPA) frontend, a Spring Boot RESTful API backend layer, and a PostgreSQL relational database tier with dedicated immutability constraints for transaction ledgers.
+StockSense is designed using a multi-tier, decoupled architecture that separates the user interface, business logic, and data management into independent layers. This structure enables maintainability, scalability, secure communication, and reliable inventory operations.
+
+The system consists of three primary layers: a React-based frontend for user interaction, a Spring Boot REST API backend for authentication and business logic, and a PostgreSQL database for persistent storage and immutable inventory ledger management.
+
+This architecture ensures that inventory operations such as receipts, deliveries, transfers, and adjustments are processed consistently while maintaining complete traceability of stock movements.
 
 ```mermaid
 graph TD
