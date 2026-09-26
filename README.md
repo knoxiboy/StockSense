@@ -30,47 +30,63 @@ StockSense follows a multi-tier decoupled architecture with a React Single-Page 
 
 ```mermaid
 graph TD
-    subgraph Client Tier
-        UI[React Single Page Application]
-        State[React Hooks & State Management]
-        AxiosClient[Axios HTTP Client Service]
+    subgraph Client_Tier["Client Tier"]
+        UI["React Single Page Application"]
+        State["React Hooks & State Management"]
+        AxiosClient["Axios HTTP Client Service"]
     end
 
-    subgraph Security Layer
-        AuthFilter[Auth Interceptor & Token Verifier]
-        UserCtx[Thread-Local User Context]
+    subgraph Security_Layer["Security Layer"]
+        AuthFilter["Auth Interceptor & Token Verifier"]
+        UserCtx["Thread-Local User Context"]
     end
 
-    subgraph Backend Application Tier (Spring Boot 3.3.4 / Java 21)
-        REST[REST Controllers]
+    subgraph Backend_Tier["Backend Application Tier (Spring Boot 3.3.4 / Java 21)"]
+        REST["REST Controllers"]
         
-        subgraph Domain Business Services
-            AuthSvc[Auth & Email Notification Service]
-            ProductSvc[Product & Inventory Service]
-            WarehouseSvc[Warehouse & Location Service]
-            ReceiptSvc[Receipt Order Service]
-            DeliverySvc[Delivery Order Service]
-            TransferSvc[Internal Transfer Service]
-            OperationSvc[Stock Operation & Adjustment Service]
-            LedgerSvc[Immutable Stock Ledger Service]
-            DashboardSvc[Analytics & KPI Dashboard Service]
+        subgraph Domain_Services["Domain Business Services"]
+            AuthSvc["Auth & Email Notification Service"]
+            ProductSvc["Product & Inventory Service"]
+            WarehouseSvc["Warehouse & Location Service"]
+            ReceiptSvc["Receipt Order Service"]
+            DeliverySvc["Delivery Order Service"]
+            TransferSvc["Internal Transfer Service"]
+            OperationSvc["Stock Operation & Adjustment Service"]
+            LedgerSvc["Immutable Stock Ledger Service"]
+            DashboardSvc["Analytics & KPI Dashboard Service"]
         end
 
-        JPA[Spring Data JPA Repositories]
+        JPA["Spring Data JPA Repositories"]
     end
 
-    subgraph Persistence Tier
-        DB[(PostgreSQL 16 Database)]
-        LedgerTable[Immutable Stock Ledger Audit Log]
+    subgraph Persistence_Tier["Persistence Tier"]
+        DB[("PostgreSQL 16 Database")]
+        LedgerTable["Immutable Stock Ledger Audit Log"]
     end
 
     UI --> State
     State --> AxiosClient
-    AxiosClient -->|HTTPS REST API / JSON| REST
+    AxiosClient -->|"HTTPS REST API / JSON"| REST
     REST --> AuthFilter
     AuthFilter --> UserCtx
-    UserCtx --> Domain Business Services
-    Domain Business Services --> JPA
+    UserCtx --> AuthSvc
+    UserCtx --> ProductSvc
+    UserCtx --> WarehouseSvc
+    UserCtx --> ReceiptSvc
+    UserCtx --> DeliverySvc
+    UserCtx --> TransferSvc
+    UserCtx --> OperationSvc
+    UserCtx --> LedgerSvc
+    UserCtx --> DashboardSvc
+    AuthSvc --> JPA
+    ProductSvc --> JPA
+    WarehouseSvc --> JPA
+    ReceiptSvc --> JPA
+    DeliverySvc --> JPA
+    TransferSvc --> JPA
+    OperationSvc --> JPA
+    LedgerSvc --> JPA
+    DashboardSvc --> JPA
     JPA --> DB
     LedgerSvc --> LedgerTable
 ```
@@ -83,22 +99,22 @@ The system establishes strict Role-Based Access Control (RBAC) separating admini
 
 ```mermaid
 graph LR
-    subgraph System Roles
-        Manager[Warehouse Manager]
-        Worker[Warehouse Staff / Worker]
+    subgraph System_Roles["System Roles"]
+        Manager["Warehouse Manager"]
+        Worker["Warehouse Staff / Worker"]
     end
 
-    subgraph Core System Use Cases
-        UC1[Account Registration & Authentication]
-        UC2[Dashboard Analytics & Real-Time KPIs]
-        UC3[Manage Product Catalog & Thresholds]
-        UC4[Manage Warehouses & Storage Locations]
-        UC5[Process Supplier Receipts & Inbound Logistics]
-        UC6[Process Customer Deliveries & Outbound Logistics]
-        UC7[Execute Internal Location Transfers]
-        UC8[Perform Inventory Stock Adjustments]
-        UC9[Audit Immutable Double-Entry Stock Ledger]
-        UC10[Configure System Settings & Password Reset]
+    subgraph Core_Use_Cases["Core System Use Cases"]
+        UC1["Account Registration & Authentication"]
+        UC2["Dashboard Analytics & Real-Time KPIs"]
+        UC3["Manage Product Catalog & Thresholds"]
+        UC4["Manage Warehouses & Storage Locations"]
+        UC5["Process Supplier Receipts & Inbound Logistics"]
+        UC6["Process Customer Deliveries & Outbound Logistics"]
+        UC7["Execute Internal Location Transfers"]
+        UC8["Perform Inventory Stock Adjustments"]
+        UC9["Audit Immutable Double-Entry Stock Ledger"]
+        UC10["Configure System Settings & Password Reset"]
     end
 
     Worker --> UC1
