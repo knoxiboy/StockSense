@@ -99,48 +99,72 @@ The system establishes strict Role-Based Access Control (RBAC) separating admini
 
 ```mermaid
 graph LR
-    subgraph System_Roles["System Roles"]
+    subgraph Roles["System Roles"]
         Manager["Warehouse Manager"]
         Worker["Warehouse Staff / Worker"]
     end
 
-    subgraph Core_Use_Cases["Core System Use Cases"]
-        UC1["Account Registration & Authentication"]
-        UC2["Dashboard Analytics & Real-Time KPIs"]
-        UC3["Manage Product Catalog & Thresholds"]
-        UC4["Manage Warehouses & Storage Locations"]
-        UC5["Process Supplier Receipts & Inbound Logistics"]
-        UC6["Process Customer Deliveries & Outbound Logistics"]
-        UC7["Execute Internal Location Transfers"]
-        UC8["Perform Inventory Stock Adjustments"]
-        UC9["Audit Immutable Double-Entry Stock Ledger"]
-        UC10["Configure System Settings & Password Reset"]
+    subgraph Auth_UC["Identity & User Governance"]
+        UC_Auth1["Register & Authenticate Account"]
+        UC_Auth2["Verify Email via OTP Code"]
+        UC_Auth3["Manage User Profile & Password"]
+        UC_Auth4["Review & Approve Worker Registrations"]
     end
 
-    Worker --> UC1
-    Worker --> UC2
-    Worker --> UC5
-    Worker --> UC6
-    Worker --> UC7
-    Worker --> UC8
-    Worker --> UC10
+    subgraph Inventory_UC["Catalog & Analytics"]
+        UC_Inv1["Monitor Dashboard KPIs & Stock Valuation"]
+        UC_Inv2["Manage SKU Catalog & Price Attributes"]
+        UC_Inv3["Track Low Stock & Reorder Alerts"]
+    end
 
-    Manager --> UC1
-    Manager --> UC2
-    Manager --> UC3
-    Manager --> UC4
-    Manager --> UC5
-    Manager --> UC6
-    Manager --> UC7
-    Manager --> UC8
-    Manager --> UC9
-    Manager --> UC10
+    subgraph Warehouse_UC["Warehouse Infrastructure"]
+        UC_Wh1["Configure Warehouses & Storage Racks"]
+        UC_Wh2["Manage Virtual Vendor & Customer Locations"]
+    end
+
+    subgraph Logistics_UC["Stock Movements & Operations"]
+        UC_Op1["Process Inbound Supplier Receipts"]
+        UC_Op2["Process Outbound Customer Deliveries"]
+        UC_Op3["Execute Internal Location Transfers"]
+        UC_Op4["Perform Physical Stock Counts & Adjustments"]
+    end
+
+    subgraph Audit_UC["Audit & System Governance"]
+        UC_Audit1["Audit Immutable Double-Entry Stock Ledger"]
+        UC_Audit2["Review Historical Stock Balance Trajectory"]
+    end
+
+    Worker --> UC_Auth1
+    Worker --> UC_Auth2
+    Worker --> UC_Auth3
+    Worker --> UC_Inv1
+    Worker --> UC_Inv3
+    Worker --> UC_Op1
+    Worker --> UC_Op2
+    Worker --> UC_Op3
+    Worker --> UC_Op4
+
+    Manager --> UC_Auth1
+    Manager --> UC_Auth2
+    Manager --> UC_Auth3
+    Manager --> UC_Auth4
+    Manager --> UC_Inv1
+    Manager --> UC_Inv2
+    Manager --> UC_Inv3
+    Manager --> UC_Wh1
+    Manager --> UC_Wh2
+    Manager --> UC_Op1
+    Manager --> UC_Op2
+    Manager --> UC_Op3
+    Manager --> UC_Op4
+    Manager --> UC_Audit1
+    Manager --> UC_Audit2
 ```
 
 ### Role Capabilities Summary
 
-- **Warehouse Manager (`MANAGER`)**: Full system permissions including product creation and metadata updates, warehouse structure configuration, inventory reconciliation approvals, and full access to audit ledgers.
-- **Warehouse Worker (`WORKER`)**: Day-to-day operational execution permissions, including receiving incoming receipts, picking and executing delivery orders, transferring items between locations, and requesting inventory count adjustments.
+- **Warehouse Manager (`MANAGER`)**: Full system administrative capabilities including worker account approvals, product creation and metadata updates, warehouse location structure configuration, inventory reconciliation approvals, and unrestricted access to historical double-entry audit ledgers.
+- **Warehouse Worker (`WORKER`)**: Day-to-day operational execution capabilities including account registration and email OTP validation, receiving incoming supplier receipts, picking and validating outbound delivery orders, transferring inventory across internal locations, and recording physical stock count adjustments.
 
 ---
 
