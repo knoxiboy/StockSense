@@ -1,11 +1,12 @@
-# StockSense - Enterprise Inventory Management System
+# StockSense
 
-StockSense is a robust, full-stack Enterprise Inventory Management System designed to provide real-time inventory tracking, multi-warehouse operational management, double-entry stock ledger auditing, and automated replenishment workflows.
+StockSense is an enterprise-grade Inventory and Warehouse Operations management system. 
 
-Built with Java 21, Spring Boot 3.3.4, PostgreSQL, and React with TypeScript, StockSense provides enterprise-grade scalability, immutable inventory event tracking, and intuitive user workflows for warehouse managers and operational staff.
+It provides a modern, responsive web application for managing stock levels, processing orders, and providing administrative oversight to your operations.
 
+## Architecture
 
----
+StockSense is built as a full-stack web application:
 
 ## Table of Contents
 
@@ -221,89 +222,41 @@ StockSense follows **double-entry principles for inventory management** to maint
 
 ### Prerequisites
 
-Ensure you have the following installed on your host system:
-- Java Development Kit (JDK) 21 or higher
-- Node.js 18+ and npm
-- Docker Desktop or Docker Engine with Docker Compose
+- Node.js (v18+)
+- Java (JDK 21+)
+- Docker and Docker Compose
+- Maven
 
-### Database Setup with Docker
+### Setting Up the Environment
 
-1. Navigate to the project root directory:
-   ```bash
-   cd StockSense
-   ```
-
-2. Start the PostgreSQL database container:
-   ```bash
+1. Clone the repository.
+2. Copy the `.env.example` file to `.env` and fill in your specific configurations (like your SMTP credentials for email delivery).
+3. Start the Postgres database:
+   ```sh
    docker-compose up -d
    ```
-   This initializes a PostgreSQL 16 container exposed on port `5432` with database `stocksense`.
 
-### Backend Setup
+### Running the Backend
 
-1. Navigate to the backend directory:
-   ```bash
-   cd backend
-   ```
+The backend can be started using the provided bash script:
+```sh
+bash run-backend.sh
+```
 
-2. Run the Spring Boot application using Maven:
-   ```bash
-   # On Windows PowerShell / Command Prompt
-   .\mvnw.cmd spring-boot:run
+This will run the Spring Boot application on port 8080. It will automatically load the `.env` file if it is present.
 
-   # On Linux / macOS
-   ./mvnw spring-boot:run
-   ```
+### Running the Frontend
 
-3. The REST API backend will start on `http://localhost:8080`.
+Navigate to the `frontend` directory, install the dependencies, and start the development server:
 
-### Frontend Setup
+```sh
+cd frontend
+npm install
+npm run dev
+```
 
-1. Open a new terminal window and navigate to the frontend directory:
-   ```bash
-   cd frontend
-   ```
+The frontend will usually run on port 5173 and communicate with the backend API on port 8080.
 
-2. Install npm dependencies:
-   ```bash
-   npm install
-   ```
+## License
 
-3. Start the Vite development server:
-   ```bash
-   npm run dev
-   ```
-
-4. Open your browser and navigate to `http://localhost:5173` to access the application.
-
----
-
-## REST API Reference
-
-| Endpoint Domain | HTTP Method | Path | Description | Access Level |
-| :--- | :--- | :--- | :--- | :--- |
-| **Authentication** | POST | `/api/auth/register` | Register new user account | Public |
-| **Authentication** | POST | `/api/auth/login` | Authenticate and obtain token | Public |
-| **Authentication** | GET | `/api/auth/me` | Fetch authenticated user profile | Authenticated |
-| **Dashboard** | GET | `/api/dashboard/kpis` | Retrieve high-level inventory KPIs | Authenticated |
-| **Products** | GET | `/api/products` | Search and filter product catalog | Authenticated |
-| **Products** | POST | `/api/products` | Create a new SKU / product | Manager |
-| **Products** | PUT | `/api/products/{id}` | Update existing product details | Manager |
-| **Warehouses** | GET | `/api/warehouses` | List warehouses & sub-locations | Authenticated |
-| **Warehouses** | POST | `/api/warehouses` | Create warehouse entry | Manager |
-| **Receipts** | GET | `/api/receipts` | List inbound receipt orders | Authenticated |
-| **Receipts** | POST | `/api/receipts` | Create inbound receipt draft | Authenticated |
-| **Receipts** | POST | `/api/receipts/{id}/validate` | Validate receipt and post stock | Authenticated |
-| **Deliveries** | GET | `/api/deliveries` | List outbound delivery orders | Authenticated |
-| **Deliveries** | POST | `/api/deliveries/{id}/validate` | Validate delivery and decrement stock | Authenticated |
-| **Transfers** | POST | `/api/transfers` | Execute internal stock transfer | Authenticated |
-| **Adjustments** | POST | `/api/operations/adjust` | Record stock count adjustment | Authenticated |
-| **Ledger** | GET | `/api/ledger` | Query stock movement audit trail | Manager |
-
----
-
-## Security & Authentication
-
-- **Password Hashing**: User passwords are encrypted using BCrypt standard algorithm before database insertion.
-- **Session Protection**: API requests are validated via custom HTTP header token interception (`AuthInterceptor`).
-- **Input Sanitization**: Request payloads undergo server-side bean validation (`@Valid`, `@NotNull`, `@Min`) to block malicious payloads.
+This project is licensed under the MIT License.
