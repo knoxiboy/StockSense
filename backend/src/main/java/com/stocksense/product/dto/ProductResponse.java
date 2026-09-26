@@ -12,11 +12,10 @@ public class ProductResponse {
     private String name;
     private String sku;
     private String category;
+    private String unit;
     private String description;
-    private String unitOfMeasure;
     private BigDecimal reorderLevel;
     private BigDecimal price;
-    private boolean active;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime createdAt;
@@ -33,11 +32,10 @@ public class ProductResponse {
         response.setName(product.getName());
         response.setSku(product.getSku());
         response.setCategory(product.getCategory());
+        response.setUnit(product.getUnit());
         response.setDescription(product.getDescription());
-        response.setUnitOfMeasure(product.getUnitOfMeasure());
         response.setReorderLevel(product.getReorderLevel());
         response.setPrice(product.getPrice());
-        response.setActive(product.isActive());
         response.setCreatedAt(product.getCreatedAt());
         response.setUpdatedAt(product.getUpdatedAt());
         return response;
@@ -75,20 +73,25 @@ public class ProductResponse {
         this.category = category;
     }
 
+    public String getUnit() {
+        return unit;
+    }
+
+    public void setUnit(String unit) {
+        this.unit = unit;
+    }
+
+    // Compatibility getter for frontend / consumers
+    public String getUnitOfMeasure() {
+        return unit;
+    }
+
     public String getDescription() {
         return description;
     }
 
     public void setDescription(String description) {
         this.description = description;
-    }
-
-    public String getUnitOfMeasure() {
-        return unitOfMeasure;
-    }
-
-    public void setUnitOfMeasure(String unitOfMeasure) {
-        this.unitOfMeasure = unitOfMeasure;
     }
 
     public BigDecimal getReorderLevel() {
@@ -105,14 +108,6 @@ public class ProductResponse {
 
     public void setPrice(BigDecimal price) {
         this.price = price;
-    }
-
-    public boolean isActive() {
-        return active;
-    }
-
-    public void setActive(boolean active) {
-        this.active = active;
     }
 
     public LocalDateTime getCreatedAt() {

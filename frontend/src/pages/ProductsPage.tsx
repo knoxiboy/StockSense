@@ -24,6 +24,7 @@ interface ProductsPageProps {
 interface FormErrors {
   name?: string;
   sku?: string;
+  category?: string;
   unitOfMeasure?: string;
   reorderLevel?: string;
   price?: string;
@@ -114,10 +115,10 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
       sku: product.sku,
       category: product.category || '',
       description: product.description || '',
-      unitOfMeasure: product.unitOfMeasure,
+      unitOfMeasure: product.unit || product.unitOfMeasure || 'units',
       reorderLevel: String(product.reorderLevel),
       price: product.price !== null && product.price !== undefined ? String(product.price) : '',
-      active: product.active,
+      active: product.active ?? true,
     });
     setFormErrors({});
     setIsEditModalOpen(true);
@@ -132,7 +133,8 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
     const errors: FormErrors = {};
     if (!formData.name.trim()) errors.name = 'Product name is required';
     if (!formData.sku.trim()) errors.sku = 'SKU is required';
-    if (!formData.unitOfMeasure.trim()) errors.unitOfMeasure = 'Unit of measure is required';
+    if (!formData.category.trim()) errors.category = 'Category is required';
+    if (!formData.unitOfMeasure.trim()) errors.unitOfMeasure = 'Unit is required';
 
     const reorder = parseFloat(formData.reorderLevel);
     if (isNaN(reorder) || reorder < 0) {
@@ -159,7 +161,8 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
       const payload: CreateProductDto = {
         name: formData.name.trim(),
         sku: formData.sku.trim(),
-        category: formData.category.trim() || undefined,
+        category: formData.category.trim(),
+        unit: formData.unitOfMeasure.trim(),
         description: formData.description.trim() || undefined,
         unitOfMeasure: formData.unitOfMeasure.trim(),
         reorderLevel: formData.reorderLevel,
@@ -188,7 +191,8 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
       const payload: UpdateProductDto = {
         name: formData.name.trim(),
         sku: formData.sku.trim(),
-        category: formData.category.trim() || undefined,
+        category: formData.category.trim(),
+        unit: formData.unitOfMeasure.trim(),
         description: formData.description.trim() || undefined,
         unitOfMeasure: formData.unitOfMeasure.trim(),
         reorderLevel: formData.reorderLevel,
@@ -335,7 +339,7 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
                       </span>
                     </td>
                     <td>
-                      {p.active ? (
+                      {p.active !== false ? (
                         <Badge variant="success">Active</Badge>
                       ) : (
                         <Badge variant="secondary">Archived</Badge>
@@ -427,14 +431,17 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
             </div>
 
             <div className="form-group">
-              <label className="form-label">Category</label>
+              <label className="form-label">
+                Category <span className="required">*</span>
+              </label>
               <input
                 type="text"
-                className="form-control"
+                className={`form-control ${formErrors.category ? 'error' : ''}`}
                 placeholder="e.g. Raw Materials"
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
               />
+              {formErrors.category && <div className="field-error">{formErrors.category}</div>}
             </div>
           </div>
 
@@ -558,13 +565,16 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
             </div>
 
             <div className="form-group">
-              <label className="form-label">Category</label>
+              <label className="form-label">
+                Category <span className="required">*</span>
+              </label>
               <input
                 type="text"
-                className="form-control"
+                className={`form-control ${formErrors.category ? 'error' : ''}`}
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
               />
+              {formErrors.category && <div className="field-error">{formErrors.category}</div>}
             </div>
           </div>
 

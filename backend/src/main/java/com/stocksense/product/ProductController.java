@@ -1,5 +1,6 @@
 package com.stocksense.product;
 
+import com.stocksense.inventory.dto.StockBalanceResponse;
 import com.stocksense.product.dto.CreateProductRequest;
 import com.stocksense.product.dto.ProductResponse;
 import com.stocksense.product.dto.UpdateProductRequest;
@@ -32,6 +33,12 @@ public class ProductController {
     public ResponseEntity<ProductResponse> getProductById(@PathVariable Long id) {
         ProductResponse product = productService.getProductById(id);
         return ResponseEntity.ok(product);
+    }
+
+    @GetMapping("/{id}/stock")
+    public ResponseEntity<StockBalanceResponse> getProductStockBalance(@PathVariable Long id) {
+        StockBalanceResponse balance = productService.getStockBalance(id);
+        return ResponseEntity.ok(balance);
     }
 
     @GetMapping("/sku/{sku}")

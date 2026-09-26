@@ -1,5 +1,6 @@
 package com.stocksense.product.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -10,21 +11,21 @@ import java.math.BigDecimal;
 public class UpdateProductRequest {
 
     @NotBlank(message = "Product name is required")
-    @Size(max = 150, message = "Product name must not exceed 150 characters")
+    @Size(min = 1, max = 150, message = "Product name must be between 1 and 150 characters")
     private String name;
 
     @NotBlank(message = "Product SKU is required")
-    @Size(max = 50, message = "SKU must not exceed 50 characters")
+    @Size(min = 1, max = 80, message = "SKU must be between 1 and 80 characters")
     private String sku;
 
-    @Size(max = 100, message = "Category must not exceed 100 characters")
+    @NotBlank(message = "Category is required")
+    @Size(min = 1, max = 100, message = "Category must be between 1 and 100 characters")
     private String category;
 
-    private String description;
-
-    @NotBlank(message = "Unit of measure is required")
-    @Size(max = 30, message = "Unit of measure must not exceed 30 characters")
-    private String unitOfMeasure;
+    @NotBlank(message = "Unit is required")
+    @Size(min = 1, max = 50, message = "Unit must be between 1 and 50 characters")
+    @JsonAlias({"unitOfMeasure"})
+    private String unit;
 
     @NotNull(message = "Reorder level is required")
     @DecimalMin(value = "0.0", inclusive = true, message = "Reorder level must be zero or positive")
@@ -33,21 +34,20 @@ public class UpdateProductRequest {
     @DecimalMin(value = "0.0", inclusive = true, message = "Price must be zero or positive")
     private BigDecimal price;
 
-    private Boolean active;
+    private String description;
 
     public UpdateProductRequest() {
     }
 
-    public UpdateProductRequest(String name, String sku, String category, String description,
-                                String unitOfMeasure, BigDecimal reorderLevel, BigDecimal price, Boolean active) {
+    public UpdateProductRequest(String name, String sku, String category, String unit,
+                                BigDecimal reorderLevel, String description, BigDecimal price) {
         this.name = name;
         this.sku = sku;
         this.category = category;
-        this.description = description;
-        this.unitOfMeasure = unitOfMeasure;
+        this.unit = unit;
         this.reorderLevel = reorderLevel;
+        this.description = description;
         this.price = price;
-        this.active = active;
     }
 
     public String getName() {
@@ -55,7 +55,7 @@ public class UpdateProductRequest {
     }
 
     public void setName(String name) {
-        this.name = name;
+        this.name = name != null ? name.trim() : null;
     }
 
     public String getSku() {
@@ -63,7 +63,7 @@ public class UpdateProductRequest {
     }
 
     public void setSku(String sku) {
-        this.sku = sku;
+        this.sku = sku != null ? sku.trim() : null;
     }
 
     public String getCategory() {
@@ -71,23 +71,23 @@ public class UpdateProductRequest {
     }
 
     public void setCategory(String category) {
-        this.category = category;
+        this.category = category != null ? category.trim() : null;
     }
 
-    public String getDescription() {
-        return description;
+    public String getUnit() {
+        return unit;
     }
 
-    public void setDescription(String description) {
-        this.description = description;
+    public void setUnit(String unit) {
+        this.unit = unit != null ? unit.trim() : null;
     }
 
     public String getUnitOfMeasure() {
-        return unitOfMeasure;
+        return unit;
     }
 
     public void setUnitOfMeasure(String unitOfMeasure) {
-        this.unitOfMeasure = unitOfMeasure;
+        this.unit = unitOfMeasure != null ? unitOfMeasure.trim() : null;
     }
 
     public BigDecimal getReorderLevel() {
@@ -106,11 +106,11 @@ public class UpdateProductRequest {
         this.price = price;
     }
 
-    public Boolean getActive() {
-        return active;
+    public String getDescription() {
+        return description;
     }
 
-    public void setActive(Boolean active) {
-        this.active = active;
+    public void setDescription(String description) {
+        this.description = description != null ? description.trim() : null;
     }
 }

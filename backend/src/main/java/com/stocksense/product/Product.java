@@ -18,26 +18,23 @@ public class Product {
     @Column(nullable = false, length = 150)
     private String name;
 
-    @Column(nullable = false, unique = true, length = 50)
+    @Column(nullable = false, unique = true, length = 80)
     private String sku;
 
-    @Column(length = 100)
+    @Column(nullable = false, length = 100)
     private String category;
+
+    @Column(nullable = false, length = 50)
+    private String unit;
 
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(nullable = false, length = 30)
-    private String unitOfMeasure;
-
-    @Column(nullable = false, precision = 18, scale = 4)
+    @Column(name = "reorder_level", nullable = false, precision = 18, scale = 4)
     private BigDecimal reorderLevel = BigDecimal.ZERO;
 
     @Column(precision = 18, scale = 2)
     private BigDecimal price;
-
-    @Column(nullable = false)
-    private boolean active = true;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -48,16 +45,15 @@ public class Product {
     public Product() {
     }
 
-    public Product(String name, String sku, String category, String description,
-                   String unitOfMeasure, BigDecimal reorderLevel, BigDecimal price) {
-        this.name = name;
-        this.sku = sku;
-        this.category = category;
-        this.description = description;
-        this.unitOfMeasure = unitOfMeasure;
+    public Product(String name, String sku, String category, String unit,
+                   BigDecimal reorderLevel, String description, BigDecimal price) {
+        this.name = name != null ? name.trim() : null;
+        this.sku = sku != null ? sku.trim() : null;
+        this.category = category != null ? category.trim() : null;
+        this.unit = unit != null ? unit.trim() : null;
         this.reorderLevel = reorderLevel != null ? reorderLevel : BigDecimal.ZERO;
+        this.description = description != null ? description.trim() : null;
         this.price = price;
-        this.active = true;
     }
 
     @PrePersist
@@ -68,6 +64,11 @@ public class Product {
         if (this.reorderLevel == null) {
             this.reorderLevel = BigDecimal.ZERO;
         }
+        if (this.name != null) this.name = this.name.trim();
+        if (this.sku != null) this.sku = this.sku.trim();
+        if (this.category != null) this.category = this.category.trim();
+        if (this.unit != null) this.unit = this.unit.trim();
+        if (this.description != null) this.description = this.description.trim();
     }
 
     @PreUpdate
@@ -76,6 +77,11 @@ public class Product {
         if (this.reorderLevel == null) {
             this.reorderLevel = BigDecimal.ZERO;
         }
+        if (this.name != null) this.name = this.name.trim();
+        if (this.sku != null) this.sku = this.sku.trim();
+        if (this.category != null) this.category = this.category.trim();
+        if (this.unit != null) this.unit = this.unit.trim();
+        if (this.description != null) this.description = this.description.trim();
     }
 
     public Long getId() {
@@ -91,7 +97,7 @@ public class Product {
     }
 
     public void setName(String name) {
-        this.name = name;
+        this.name = name != null ? name.trim() : null;
     }
 
     public String getSku() {
@@ -99,7 +105,7 @@ public class Product {
     }
 
     public void setSku(String sku) {
-        this.sku = sku;
+        this.sku = sku != null ? sku.trim() : null;
     }
 
     public String getCategory() {
@@ -107,7 +113,20 @@ public class Product {
     }
 
     public void setCategory(String category) {
-        this.category = category;
+        this.category = category != null ? category.trim() : null;
+    }
+
+    public String getUnit() {
+        return unit;
+    }
+
+    public void setUnit(String unit) {
+        this.unit = unit != null ? unit.trim() : null;
+    }
+
+    // Compatibility getter
+    public String getUnitOfMeasure() {
+        return unit;
     }
 
     public String getDescription() {
@@ -115,15 +134,7 @@ public class Product {
     }
 
     public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public String getUnitOfMeasure() {
-        return unitOfMeasure;
-    }
-
-    public void setUnitOfMeasure(String unitOfMeasure) {
-        this.unitOfMeasure = unitOfMeasure;
+        this.description = description != null ? description.trim() : null;
     }
 
     public BigDecimal getReorderLevel() {
@@ -131,7 +142,7 @@ public class Product {
     }
 
     public void setReorderLevel(BigDecimal reorderLevel) {
-        this.reorderLevel = reorderLevel;
+        this.reorderLevel = reorderLevel != null ? reorderLevel : BigDecimal.ZERO;
     }
 
     public BigDecimal getPrice() {
@@ -140,14 +151,6 @@ public class Product {
 
     public void setPrice(BigDecimal price) {
         this.price = price;
-    }
-
-    public boolean isActive() {
-        return active;
-    }
-
-    public void setActive(boolean active) {
-        this.active = active;
     }
 
     public LocalDateTime getCreatedAt() {

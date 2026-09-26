@@ -2,12 +2,13 @@ export interface Product {
   id: number;
   name: string;
   sku: string;
-  category: string | null;
+  category: string;
+  unit: string;
+  unitOfMeasure?: string;
   description: string | null;
-  unitOfMeasure: string;
   reorderLevel: number | string;
   price: number | string | null;
-  active: boolean;
+  active?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -15,9 +16,10 @@ export interface Product {
 export interface CreateProductDto {
   name: string;
   sku: string;
-  category?: string;
+  category: string;
+  unit: string;
+  unitOfMeasure?: string;
   description?: string;
-  unitOfMeasure: string;
   reorderLevel: number | string;
   price?: number | string | null;
 }
@@ -25,12 +27,24 @@ export interface CreateProductDto {
 export interface UpdateProductDto {
   name: string;
   sku: string;
-  category?: string;
+  category: string;
+  unit: string;
+  unitOfMeasure?: string;
   description?: string;
-  unitOfMeasure: string;
   reorderLevel: number | string;
   price?: number | string | null;
   active?: boolean;
+}
+
+export interface StockBalanceResponse {
+  id: number;
+  productId: number;
+  productName: string;
+  sku: string;
+  quantity: number | string;
+  unit: string;
+  reorderLevel: number | string;
+  updatedAt: string;
 }
 
 export interface ApiErrorResponse {

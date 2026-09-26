@@ -1,5 +1,5 @@
 import http from './http';
-import { Product, CreateProductDto, UpdateProductDto } from '../types/product';
+import { Product, CreateProductDto, UpdateProductDto, StockBalanceResponse } from '../types/product';
 
 export const productApi = {
   async getAll(search?: string, category?: string): Promise<Product[]> {
@@ -15,6 +15,11 @@ export const productApi = {
     return response.data;
   },
 
+  async getStock(id: number): Promise<StockBalanceResponse> {
+    const response = await http.get<StockBalanceResponse>(`/products/${id}/stock`);
+    return response.data;
+  },
+
   async getBySku(sku: string): Promise<Product> {
     const response = await http.get<Product>(`/products/sku/${encodeURIComponent(sku)}`);
     return response.data;
@@ -26,12 +31,20 @@ export const productApi = {
   },
 
   async create(data: CreateProductDto): Promise<Product> {
-    const response = await http.post<Product>('/products', data);
+    const payload = {
+      ...data,
+      unit: data.unit || data.unitOfMeasure,
+    };
+    const response = await http.post<Product>('/products', payload);
     return response.data;
   },
 
   async update(id: number, data: UpdateProductDto): Promise<Product> {
-    const response = await http.put<Product>(`/products/${id}`, data);
+    const payload = {
+      ...data,
+      unit: data.unit || data.unitOfMeasure,
+    };
+    const response = await http.put<Product>(`/products/${id}`, payload);
     return response.data;
   },
 

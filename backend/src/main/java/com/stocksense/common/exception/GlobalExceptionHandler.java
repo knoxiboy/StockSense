@@ -33,9 +33,9 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
     }
 
-    @ExceptionHandler(DuplicateResourceException.class)
-    public ResponseEntity<ApiError> handleDuplicateResourceException(
-            DuplicateResourceException ex, HttpServletRequest request) {
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<ApiError> handleConflictException(
+            ConflictException ex, HttpServletRequest request) {
         log.warn("Conflict detected: {}", ex.getMessage());
         ApiError error = new ApiError(
                 HttpStatus.CONFLICT.value(),
