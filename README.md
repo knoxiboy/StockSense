@@ -175,11 +175,17 @@ StockSense/
 
 ## Data Integrity & Stock Ledger Model
 
-StockSense enforces financial-grade double-entry principles for stock management:
+StockSense follows **double-entry principles for inventory management** to maintain accurate, consistent, and auditable stock records.
 
-- **Immutability**: Stock ledger entries cannot be modified or deleted once persisted. Any corrections require an offsetting adjustment entry.
-- **Atomic State Modifications**: Inventory balance updating operations execute within transactional boundaries (`@Transactional`). If any step in a transfer or delivery fails, all ledger and balance changes roll back automatically.
-- **Traceability**: Every quantity shift records the source location ID, target location ID, reference order ID, operating user, timestamp, and resulting balance state.
+- **Immutability**: Stock ledger entries cannot be modified or deleted once persisted. Any correction is recorded through a new offsetting adjustment entry, preserving the original transaction history.
+
+- **Atomic State Modifications**: Inventory-changing operations are executed within transactional boundaries using Spring's `@Transactional`. If any step in a transfer, receipt, delivery, or adjustment fails, the associated inventory and ledger changes are rolled back to maintain data consistency.
+
+- **Traceability**: Every inventory movement records essential information such as the product/SKU, source location, destination location, reference order, operating user, quantity, timestamp, and resulting inventory balance.
+
+- **Auditability**: All stock movements are recorded in the ledger, providing a complete historical trail for inventory reconciliation, operational monitoring, and audit purposes.
+
+- **Consistency**: Inventory balances and corresponding ledger entries are updated together, ensuring that stock quantities remain synchronized with their transaction history.
 
 ---
 
