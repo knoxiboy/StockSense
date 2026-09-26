@@ -1,21 +1,46 @@
 export type OperationType = 'RECEIPT' | 'DELIVERY' | 'ADJUSTMENT';
-export type OperationStatus = 'DRAFT' | 'WAITING' | 'READY' | 'DONE' | 'CANCELLED';
-
-export interface OperationItem {
-  id?: number;
-  productId: number;
-  productName?: string;
-  sku?: string;
-  quantity: number | string;
-}
 
 export interface StockOperation {
   id: number;
-  referenceNumber: string;
-  type: OperationType;
-  status: OperationStatus;
-  notes?: string;
-  items: OperationItem[];
+  operationType: OperationType;
+  productId: number;
+  productName: string;
+  sku: string;
+  unit: string;
+  quantity: number;
+  quantityChange: number;
+  resultingQuantity: number;
+  reference: string | null;
+  notes: string | null;
   createdAt: string;
-  completedAt?: string;
+}
+
+export type StockOperationResponse = StockOperation;
+
+export interface CreateReceiptRequest {
+  productId: number;
+  quantity: number;
+  reference?: string;
+  notes?: string;
+}
+
+export interface CreateDeliveryRequest {
+  productId: number;
+  quantity: number;
+  reference?: string;
+  notes?: string;
+}
+
+export interface CreateAdjustmentRequest {
+  productId: number;
+  countedQuantity: number;
+  reference?: string;
+  notes?: string;
+}
+
+export interface OperationFilterParams {
+  productId?: number;
+  type?: OperationType;
+  page?: number;
+  size?: number;
 }

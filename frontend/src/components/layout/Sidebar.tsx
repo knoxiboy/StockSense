@@ -3,13 +3,21 @@ import {
   Boxes,
   LayoutDashboard,
   Package,
+  Layers,
   ArrowDownLeft,
   ArrowUpRight,
   SlidersHorizontal,
   History,
 } from 'lucide-react';
 
-export type PageId = 'dashboard' | 'products' | 'receipts' | 'deliveries' | 'adjustments' | 'ledger';
+export type PageId =
+  | 'dashboard'
+  | 'products'
+  | 'operations'
+  | 'receipts'
+  | 'deliveries'
+  | 'adjustments'
+  | 'ledger';
 
 interface SidebarProps {
   currentPage: PageId;
@@ -48,18 +56,25 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate }) => 
         >
           <Package size={18} />
           <span>Products</span>
-          <span className={`nav-badge-pill ${currentPage === 'products' ? 'active-pill' : ''}`}>
-            Core
-          </span>
         </button>
 
-        <div className="nav-section-title">Operations</div>
+        <div className="nav-section-title">Inventory Operations</div>
+        <button
+          type="button"
+          className={`nav-item ${currentPage === 'operations' ? 'active' : ''}`}
+          onClick={() => onNavigate('operations')}
+        >
+          <Layers size={18} />
+          <span>All Operations</span>
+        </button>
+
         <button
           type="button"
           className={`nav-item ${currentPage === 'receipts' ? 'active' : ''}`}
           onClick={() => onNavigate('receipts')}
+          style={{ paddingLeft: '28px', fontSize: '0.85rem' }}
         >
-          <ArrowDownLeft size={18} />
+          <ArrowDownLeft size={16} />
           <span>Receipts</span>
         </button>
 
@@ -67,8 +82,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate }) => 
           type="button"
           className={`nav-item ${currentPage === 'deliveries' ? 'active' : ''}`}
           onClick={() => onNavigate('deliveries')}
+          style={{ paddingLeft: '28px', fontSize: '0.85rem' }}
         >
-          <ArrowUpRight size={18} />
+          <ArrowUpRight size={16} />
           <span>Deliveries</span>
         </button>
 
@@ -76,8 +92,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate }) => 
           type="button"
           className={`nav-item ${currentPage === 'adjustments' ? 'active' : ''}`}
           onClick={() => onNavigate('adjustments')}
+          style={{ paddingLeft: '28px', fontSize: '0.85rem' }}
         >
-          <SlidersHorizontal size={18} />
+          <SlidersHorizontal size={16} />
           <span>Adjustments</span>
         </button>
 
@@ -95,7 +112,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate }) => 
       <div className="sidebar-footer">
         <div className="system-status">
           <span className="status-dot"></span>
-          <span>Phase 1 • Core Online</span>
+          <span>Backend Connected • Live</span>
         </div>
       </div>
     </aside>

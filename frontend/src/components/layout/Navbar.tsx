@@ -9,11 +9,15 @@ interface NavbarProps {
 const pageTitles: Record<PageId, { title: string; subtitle: string }> = {
   dashboard: {
     title: 'Inventory Dashboard',
-    subtitle: 'System KPIs, alerts, and operational overview',
+    subtitle: 'System KPIs, replenishment alerts, and operational overview',
   },
   products: {
     title: 'Product Catalog',
     subtitle: 'Manage products, SKUs, reorder levels, and categories',
+  },
+  operations: {
+    title: 'Inventory Operations',
+    subtitle: 'Process receipts, deliveries, and stock adjustments with live movement history',
   },
   receipts: {
     title: 'Incoming Receipts',
@@ -21,7 +25,7 @@ const pageTitles: Record<PageId, { title: string; subtitle: string }> = {
   },
   deliveries: {
     title: 'Delivery Orders',
-    subtitle: 'Pick, pack, and validate outgoing shipments to customers',
+    subtitle: 'Validate outgoing client deliveries and maintain non-negative stock',
   },
   adjustments: {
     title: 'Stock Adjustments',
@@ -29,12 +33,12 @@ const pageTitles: Record<PageId, { title: string; subtitle: string }> = {
   },
   ledger: {
     title: 'Stock Ledger',
-    subtitle: 'Immutable audit trail of all inventory transactions',
+    subtitle: 'Immutable audit trail of all inventory balance transactions',
   },
 };
 
 export const Navbar: React.FC<NavbarProps> = ({ currentPage, totalProductsCount }) => {
-  const meta = pageTitles[currentPage];
+  const meta = pageTitles[currentPage] || pageTitles.dashboard;
 
   return (
     <header className="navbar">

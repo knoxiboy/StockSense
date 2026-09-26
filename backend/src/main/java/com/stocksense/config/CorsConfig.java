@@ -23,6 +23,7 @@ public class CorsConfig {
                 "http://127.0.0.1:3000"
         ));
         config.setAllowedHeaders(Arrays.asList("Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With"));
+        config.setExposedHeaders(Arrays.asList("X-Total-Count", "X-Total-Pages", "X-Current-Page", "X-Page-Size"));
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setMaxAge(3600L);
 

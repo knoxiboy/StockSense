@@ -1,18 +1,21 @@
 import React from 'react';
-import { SlidersHorizontal } from 'lucide-react';
+import OperationsPage from './OperationsPage';
 
-export const AdjustmentsPage: React.FC = () => {
+interface AdjustmentsPageProps {
+  onSuccessToast?: (msg: string) => void;
+  onErrorToast?: (msg: string) => void;
+}
+
+export const AdjustmentsPage: React.FC<AdjustmentsPageProps> = ({
+  onSuccessToast = () => {},
+  onErrorToast = () => {},
+}) => {
   return (
-    <div className="phase-placeholder">
-      <div className="phase-placeholder-icon">
-        <SlidersHorizontal size={28} />
-      </div>
-      <h3>Inventory Adjustments</h3>
-      <p>
-        Perform physical stock takes, audit discrepancies between physical counts and system balances, and log corrections.
-      </p>
-      <span className="badge badge-primary">Scheduled for Phase 2: Operations</span>
-    </div>
+    <OperationsPage
+      initialType="ADJUSTMENT"
+      onSuccessToast={onSuccessToast}
+      onErrorToast={onErrorToast}
+    />
   );
 };
 

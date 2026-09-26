@@ -1,18 +1,21 @@
 import React from 'react';
-import { ArrowUpRight } from 'lucide-react';
+import OperationsPage from './OperationsPage';
 
-export const DeliveriesPage: React.FC = () => {
+interface DeliveriesPageProps {
+  onSuccessToast?: (msg: string) => void;
+  onErrorToast?: (msg: string) => void;
+}
+
+export const DeliveriesPage: React.FC<DeliveriesPageProps> = ({
+  onSuccessToast = () => {},
+  onErrorToast = () => {},
+}) => {
   return (
-    <div className="phase-placeholder">
-      <div className="phase-placeholder-icon">
-        <ArrowUpRight size={28} />
-      </div>
-      <h3>Delivery Orders (Outbound Stock)</h3>
-      <p>
-        Manage customer sales orders, pick & pack validation, and atomic stock decrements with negative stock prevention.
-      </p>
-      <span className="badge badge-primary">Scheduled for Phase 2: Operations</span>
-    </div>
+    <OperationsPage
+      initialType="DELIVERY"
+      onSuccessToast={onSuccessToast}
+      onErrorToast={onErrorToast}
+    />
   );
 };
 

@@ -38,6 +38,7 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
 }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
+  const [stockMap, setStockMap] = useState<Record<number, import('../types/product').StockBalanceResponse>>({});
   const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
@@ -47,6 +48,7 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
   const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
   const [activeProduct, setActiveProduct] = useState<Product | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Form states
   const [formData, setFormData] = useState({
@@ -74,6 +76,23 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
       if (onUpdateTotalCount) {
         onUpdateTotalCount(productList.length);
       }
+
+      // Load stock balances for all fetched products
+      const balances = await Promise.all(
+        productList.map(async (p) => {
+          try {
+            const stock = await productApi.getStock(p.id);
+            return { id: p.id, stock };
+          } catch {
+            return null;
+          }
+        })
+      );
+      const map: Record<number, import('../types/product').StockBalanceResponse> = {};
+      balances.forEach((b) => {
+        if (b) map[b.id] = b.stock;
+      });
+      setStockMap(map);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to load products';
       onErrorToast(msg);
@@ -126,6 +145,7 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
 
   const handleOpenDelete = (product: Product) => {
     setActiveProduct(product);
+    setDeleteError(null);
     setIsDeleteModalOpen(true);
   };
 
@@ -217,6 +237,7 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
     if (!activeProduct) return;
 
     setIsSubmitting(true);
+    setDeleteError(null);
     try {
       await productApi.delete(activeProduct.id);
       onSuccessToast(`Product "${activeProduct.name}" removed successfully`);
@@ -225,6 +246,7 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
       loadData();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error deleting product';
+      setDeleteError(msg);
       onErrorToast(msg);
     } finally {
       setIsSubmitting(false);
@@ -303,6 +325,7 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
                   <th>Product & SKU</th>
                   <th>Category</th>
                   <th>Unit</th>
+                  <th>Current Stock</th>
                   <th>Reorder Level</th>
                   <th>Unit Price</th>
                   <th>Status</th>
@@ -310,7 +333,14 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
                 </tr>
               </thead>
               <tbody>
-                {products.map((p) => (
+                {products.map((p) => {
+                  const stock = stockMap[p.id];
+                  const currentQty = stock ? (typeof stock.quantity === 'string' ? parseFloat(stock.quantity) : stock.quantity) : 0;
+                  const reorder = typeof p.reorderLevel === 'string' ? parseFloat(p.reorderLevel) : p.reorderLevel;
+                  const isOutOfStock = stock && currentQty === 0;
+                  const isLowStock = stock && currentQty > 0 && currentQty <= reorder;
+
+                  return (
                   <tr key={p.id}>
                     <td>
                       <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{p.name}</div>
@@ -326,11 +356,24 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
                       )}
                     </td>
                     <td>
-                      <span style={{ fontSize: '0.85rem' }}>{p.unitOfMeasure}</span>
+                      <span style={{ fontSize: '0.85rem' }}>{p.unit || p.unitOfMeasure}</span>
+                    </td>
+                    <td>
+                      {stock ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ fontWeight: 600, color: isOutOfStock ? 'var(--danger)' : isLowStock ? '#b45309' : 'inherit' }}>
+                            {formatQuantity(stock.quantity, p.unit || p.unitOfMeasure)}
+                          </span>
+                          {isOutOfStock && <Badge variant="danger">Out of Stock</Badge>}
+                          {isLowStock && <Badge variant="warning">Low Stock</Badge>}
+                        </div>
+                      ) : (
+                        <span style={{ color: 'var(--text-light)', fontSize: '0.8rem' }}>Loading...</span>
+                      )}
                     </td>
                     <td>
                       <span style={{ fontWeight: 500 }}>
-                        {formatQuantity(p.reorderLevel, p.unitOfMeasure)}
+                        {formatQuantity(p.reorderLevel, p.unit || p.unitOfMeasure)}
                       </span>
                     </td>
                     <td>
@@ -367,7 +410,8 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -689,9 +733,38 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
               Are you sure you want to delete product{' '}
               <strong>"{activeProduct?.name}"</strong> (SKU: <code>{activeProduct?.sku}</code>)?
             </p>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '8px' }}>
               This will remove the product definition from the catalog. This action cannot be undone.
             </p>
+            <div
+              style={{
+                fontSize: '0.78rem',
+                color: '#92400e',
+                background: '#fffbeb',
+                border: '1px solid #fde68a',
+                borderRadius: 'var(--radius-sm)',
+                padding: '8px 12px',
+                marginTop: '8px',
+              }}
+            >
+              <strong>Deletion Rules:</strong> Products cannot be deleted if they currently hold positive on-hand stock or have recorded historical stock movement transactions.
+            </div>
+
+            {deleteError && (
+              <div
+                style={{
+                  marginTop: '12px',
+                  padding: '10px 14px',
+                  background: 'var(--danger-bg)',
+                  border: '1px solid var(--danger-border)',
+                  borderRadius: 'var(--radius-md)',
+                  color: 'var(--danger)',
+                  fontSize: '0.82rem',
+                }}
+              >
+                <strong>Deletion Blocked:</strong> {deleteError}
+              </div>
+            )}
           </div>
         </div>
       </Modal>
