@@ -1,9 +1,13 @@
 import React from 'react';
 import { PageId } from './Sidebar';
+import { User } from '../../types/auth';
+import { LogIn } from 'lucide-react';
 
 interface NavbarProps {
   currentPage: PageId;
   totalProductsCount?: number;
+  currentUser: User | null;
+  onOpenAuth: () => void;
 }
 
 const pageTitles: Record<PageId, { title: string; subtitle: string }> = {
@@ -16,16 +20,20 @@ const pageTitles: Record<PageId, { title: string; subtitle: string }> = {
     subtitle: 'Manage products, SKUs, reorder levels, and categories',
   },
   operations: {
-    title: 'Inventory Operations',
-    subtitle: 'Process receipts, deliveries, and stock adjustments with live movement history',
+    title: 'Quick Operations',
+    subtitle: 'Process immediate receipts, deliveries, and stock adjustments with live movement history',
   },
   receipts: {
-    title: 'Incoming Receipts',
-    subtitle: 'Receive purchase orders and inbound stock from suppliers',
+    title: 'Receipt Orders & Workflows',
+    subtitle: 'Multi-line purchase orders from suppliers: Draft → Waiting → Ready → Done',
   },
   deliveries: {
-    title: 'Delivery Orders',
-    subtitle: 'Validate outgoing client deliveries and maintain non-negative stock',
+    title: 'Delivery Orders & Workflows',
+    subtitle: 'Multi-line client order fulfillment with picking and packing status tracking',
+  },
+  transfers: {
+    title: 'Internal Transfers',
+    subtitle: 'Move stock between warehouse locations with atomic zero-sum ledger updates',
   },
   adjustments: {
     title: 'Stock Adjustments',
@@ -35,9 +43,22 @@ const pageTitles: Record<PageId, { title: string; subtitle: string }> = {
     title: 'Stock Ledger',
     subtitle: 'Immutable audit trail of all inventory balance transactions',
   },
+  warehouses: {
+    title: 'Warehouses & Locations',
+    subtitle: 'Multi-warehouse facilities, storage zones, aisles, and bins',
+  },
+  settings: {
+    title: 'System Settings',
+    subtitle: 'Runtime configuration, database status, and SMTP email setup guide',
+  },
 };
 
-export const Navbar: React.FC<NavbarProps> = ({ currentPage, totalProductsCount }) => {
+export const Navbar: React.FC<NavbarProps> = ({
+  currentPage,
+  totalProductsCount,
+  currentUser,
+  onOpenAuth,
+}) => {
   const meta = pageTitles[currentPage] || pageTitles.dashboard;
 
   return (
@@ -47,12 +68,46 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPage, totalProductsCount 
         <p>{meta.subtitle}</p>
       </div>
 
-      <div className="navbar-actions">
+      <div className="navbar-actions" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
         {currentPage === 'products' && totalProductsCount !== undefined && (
           <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
             Total Items: <strong style={{ color: 'var(--text-main)' }}>{totalProductsCount}</strong>
           </span>
         )}
+
+        <button
+          type="button"
+          className="btn btn-secondary btn-sm"
+          onClick={onOpenAuth}
+          style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+        >
+          {currentUser ? (
+            <>
+              <div
+                style={{
+                  width: '20px',
+                  height: '20px',
+                  borderRadius: '50%',
+                  background: 'var(--primary)',
+                  color: '#fff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                }}
+              >
+                {currentUser.fullName.charAt(0).toUpperCase()}
+              </div>
+              <span>{currentUser.fullName}</span>
+            </>
+          ) : (
+            <>
+              <LogIn size={14} />
+              <span>Sign In / Profile</span>
+            </>
+          )}
+        </button>
       </div>
     </header>
   );

@@ -6,9 +6,14 @@ import {
   Layers,
   ArrowDownLeft,
   ArrowUpRight,
+  ArrowLeftRight,
   SlidersHorizontal,
   History,
+  Warehouse,
+  Settings as SettingsIcon,
+  User as UserIcon,
 } from 'lucide-react';
+import { User } from '../../types/auth';
 
 export type PageId =
   | 'dashboard'
@@ -16,15 +21,25 @@ export type PageId =
   | 'operations'
   | 'receipts'
   | 'deliveries'
+  | 'transfers'
   | 'adjustments'
-  | 'ledger';
+  | 'ledger'
+  | 'warehouses'
+  | 'settings';
 
 interface SidebarProps {
   currentPage: PageId;
   onNavigate: (page: PageId) => void;
+  currentUser: User | null;
+  onOpenAuth: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate }) => {
+export const Sidebar: React.FC<SidebarProps> = ({
+  currentPage,
+  onNavigate,
+  currentUser,
+  onOpenAuth,
+}) => {
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
@@ -61,44 +76,59 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate }) => 
         <div className="nav-section-title">Inventory Operations</div>
         <button
           type="button"
-          className={`nav-item ${currentPage === 'operations' ? 'active' : ''}`}
-          onClick={() => onNavigate('operations')}
-        >
-          <Layers size={18} />
-          <span>All Operations</span>
-        </button>
-
-        <button
-          type="button"
           className={`nav-item ${currentPage === 'receipts' ? 'active' : ''}`}
           onClick={() => onNavigate('receipts')}
-          style={{ paddingLeft: '28px', fontSize: '0.85rem' }}
         >
-          <ArrowDownLeft size={16} />
-          <span>Receipts</span>
+          <ArrowDownLeft size={18} />
+          <span>Receipt Orders</span>
         </button>
 
         <button
           type="button"
           className={`nav-item ${currentPage === 'deliveries' ? 'active' : ''}`}
           onClick={() => onNavigate('deliveries')}
-          style={{ paddingLeft: '28px', fontSize: '0.85rem' }}
         >
-          <ArrowUpRight size={16} />
-          <span>Deliveries</span>
+          <ArrowUpRight size={18} />
+          <span>Delivery Orders</span>
+        </button>
+
+        <button
+          type="button"
+          className={`nav-item ${currentPage === 'transfers' ? 'active' : ''}`}
+          onClick={() => onNavigate('transfers')}
+        >
+          <ArrowLeftRight size={18} />
+          <span>Internal Transfers</span>
         </button>
 
         <button
           type="button"
           className={`nav-item ${currentPage === 'adjustments' ? 'active' : ''}`}
           onClick={() => onNavigate('adjustments')}
-          style={{ paddingLeft: '28px', fontSize: '0.85rem' }}
         >
-          <SlidersHorizontal size={16} />
+          <SlidersHorizontal size={18} />
           <span>Adjustments</span>
         </button>
 
-        <div className="nav-section-title">Audit</div>
+        <button
+          type="button"
+          className={`nav-item ${currentPage === 'operations' ? 'active' : ''}`}
+          onClick={() => onNavigate('operations')}
+        >
+          <Layers size={18} />
+          <span>Quick Operations</span>
+        </button>
+
+        <div className="nav-section-title">Locations & Audit</div>
+        <button
+          type="button"
+          className={`nav-item ${currentPage === 'warehouses' ? 'active' : ''}`}
+          onClick={() => onNavigate('warehouses')}
+        >
+          <Warehouse size={18} />
+          <span>Warehouses & Locations</span>
+        </button>
+
         <button
           type="button"
           className={`nav-item ${currentPage === 'ledger' ? 'active' : ''}`}
@@ -107,9 +137,59 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate }) => 
           <History size={18} />
           <span>Stock Ledger</span>
         </button>
+
+        <div className="nav-section-title">Configuration</div>
+        <button
+          type="button"
+          className={`nav-item ${currentPage === 'settings' ? 'active' : ''}`}
+          onClick={() => onNavigate('settings')}
+        >
+          <SettingsIcon size={18} />
+          <span>Settings</span>
+        </button>
       </nav>
 
       <div className="sidebar-footer">
+        <div
+          onClick={onOpenAuth}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            padding: '8px 12px',
+            marginBottom: '10px',
+            borderRadius: '6px',
+            background: 'var(--surface-sunken)',
+            cursor: 'pointer',
+            border: '1px solid var(--border-subtle)',
+          }}
+        >
+          <div
+            style={{
+              width: '28px',
+              height: '28px',
+              borderRadius: '50%',
+              background: currentUser ? 'var(--primary)' : 'var(--text-muted)',
+              color: '#fff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+            }}
+          >
+            {currentUser ? currentUser.fullName.charAt(0).toUpperCase() : <UserIcon size={14} />}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: '0.82rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {currentUser ? currentUser.fullName : 'Account / Login'}
+            </div>
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+              {currentUser ? currentUser.role : 'Click to authenticate'}
+            </div>
+          </div>
+        </div>
+
         <div className="system-status">
           <span className="status-dot"></span>
           <span>Backend Connected • Live</span>

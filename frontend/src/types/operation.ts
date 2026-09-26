@@ -1,4 +1,4 @@
-export type OperationType = 'RECEIPT' | 'DELIVERY' | 'ADJUSTMENT';
+export type OperationType = 'RECEIPT' | 'DELIVERY' | 'ADJUSTMENT' | 'TRANSFER';
 
 export interface StockOperation {
   id: number;

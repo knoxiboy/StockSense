@@ -13,6 +13,18 @@ export interface StockLedgerEntry {
   resultingQuantity: number;
   reference: string | null;
   notes: string | null;
+  warehouseId?: number | null;
+  warehouseName?: string | null;
+  warehouseCode?: string | null;
+  locationId?: number | null;
+  locationName?: string | null;
+  locationCode?: string | null;
+  sourceLocationId?: number | null;
+  sourceLocationName?: string | null;
+  sourceLocationCode?: string | null;
+  destinationLocationId?: number | null;
+  destinationLocationName?: string | null;
+  destinationLocationCode?: string | null;
   createdAt: string;
 }
 
@@ -23,6 +35,8 @@ export interface LedgerFilterParams {
   type?: OperationType;
   from?: string; // YYYY-MM-DD
   to?: string;   // YYYY-MM-DD
+  locationId?: number;
+  warehouseId?: number;
   page?: number;
   size?: number;
 }

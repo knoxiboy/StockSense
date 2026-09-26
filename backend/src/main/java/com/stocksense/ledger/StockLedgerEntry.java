@@ -31,6 +31,22 @@ public class StockLedgerEntry {
     @Column(name = "operation_type", nullable = false, length = 30)
     private OperationType operationType;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "warehouse_id")
+    private com.stocksense.warehouse.Warehouse warehouse;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "location_id")
+    private com.stocksense.warehouse.Location location;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "source_location_id")
+    private com.stocksense.warehouse.Location sourceLocation;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "destination_location_id")
+    private com.stocksense.warehouse.Location destinationLocation;
+
     @Column(name = "quantity_change", nullable = false, precision = 18, scale = 4)
     private BigDecimal quantityChange;
 
@@ -51,6 +67,29 @@ public class StockLedgerEntry {
         this.operation = operation;
         this.product = product;
         this.operationType = operationType;
+        this.quantityChange = quantityChange;
+        this.previousQuantity = previousQuantity;
+        this.resultingQuantity = resultingQuantity;
+        if (operation != null) {
+            this.location = operation.getLocation();
+            this.sourceLocation = operation.getSourceLocation();
+            this.destinationLocation = operation.getDestinationLocation();
+            if (this.location != null) {
+                this.warehouse = this.location.getWarehouse();
+            }
+        }
+    }
+
+    public StockLedgerEntry(StockOperation operation, Product product, OperationType operationType,
+                            com.stocksense.warehouse.Location location,
+                            BigDecimal quantityChange, BigDecimal previousQuantity, BigDecimal resultingQuantity) {
+        this.operation = operation;
+        this.product = product;
+        this.operationType = operationType;
+        this.location = location;
+        if (location != null) {
+            this.warehouse = location.getWarehouse();
+        }
         this.quantityChange = quantityChange;
         this.previousQuantity = previousQuantity;
         this.resultingQuantity = resultingQuantity;
@@ -115,6 +154,38 @@ public class StockLedgerEntry {
 
     public void setResultingQuantity(BigDecimal resultingQuantity) {
         this.resultingQuantity = resultingQuantity;
+    }
+
+    public com.stocksense.warehouse.Warehouse getWarehouse() {
+        return warehouse;
+    }
+
+    public void setWarehouse(com.stocksense.warehouse.Warehouse warehouse) {
+        this.warehouse = warehouse;
+    }
+
+    public com.stocksense.warehouse.Location getLocation() {
+        return location;
+    }
+
+    public void setLocation(com.stocksense.warehouse.Location location) {
+        this.location = location;
+    }
+
+    public com.stocksense.warehouse.Location getSourceLocation() {
+        return sourceLocation;
+    }
+
+    public void setSourceLocation(com.stocksense.warehouse.Location sourceLocation) {
+        this.sourceLocation = sourceLocation;
+    }
+
+    public com.stocksense.warehouse.Location getDestinationLocation() {
+        return destinationLocation;
+    }
+
+    public void setDestinationLocation(com.stocksense.warehouse.Location destinationLocation) {
+        this.destinationLocation = destinationLocation;
     }
 
     public LocalDateTime getCreatedAt() {

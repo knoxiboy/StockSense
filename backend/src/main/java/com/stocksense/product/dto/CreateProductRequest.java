@@ -36,6 +36,11 @@ public class CreateProductRequest {
 
     private String description;
 
+    @DecimalMin(value = "0.0", inclusive = true, message = "Initial stock must be zero or positive")
+    private BigDecimal initialStock = BigDecimal.ZERO;
+
+    private Long locationId;
+
     public CreateProductRequest() {
     }
 
@@ -112,5 +117,21 @@ public class CreateProductRequest {
 
     public void setDescription(String description) {
         this.description = description != null ? description.trim() : null;
+    }
+
+    public BigDecimal getInitialStock() {
+        return initialStock;
+    }
+
+    public void setInitialStock(BigDecimal initialStock) {
+        this.initialStock = initialStock;
+    }
+
+    public Long getLocationId() {
+        return locationId;
+    }
+
+    public void setLocationId(Long locationId) {
+        this.locationId = locationId;
     }
 }

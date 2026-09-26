@@ -33,11 +33,13 @@ public class StockLedgerController {
             @RequestParam(required = false) OperationType type,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) Long locationId,
+            @RequestParam(required = false) Long warehouseId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
 
         Page<StockLedgerEntryResponse> pagedResult = stockLedgerService.getLedgerEntriesPaged(
-                productId, type, from, to, page, size);
+                productId, type, from, to, locationId, warehouseId, page, size);
 
         HttpHeaders headers = new HttpHeaders();
         headers.add("X-Total-Count", String.valueOf(pagedResult.getTotalElements()));

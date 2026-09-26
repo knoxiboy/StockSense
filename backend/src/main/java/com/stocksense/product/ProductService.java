@@ -5,10 +5,18 @@ import com.stocksense.common.exception.DuplicateResourceException;
 import com.stocksense.common.exception.ResourceNotFoundException;
 import com.stocksense.inventory.StockBalance;
 import com.stocksense.inventory.StockBalanceRepository;
+import com.stocksense.inventory.dto.LocationBalanceItem;
 import com.stocksense.inventory.dto.StockBalanceResponse;
+import com.stocksense.operation.StockOperationRepository;
 import com.stocksense.product.dto.CreateProductRequest;
 import com.stocksense.product.dto.ProductResponse;
 import com.stocksense.product.dto.UpdateProductRequest;
+import com.stocksense.warehouse.Location;
+import com.stocksense.warehouse.LocationRepository;
+import com.stocksense.warehouse.LocationService;
+import com.stocksense.warehouse.LocationStockBalance;
+import com.stocksense.warehouse.LocationStockBalanceRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,22 +29,50 @@ public class ProductService {
 
     private final ProductRepository productRepository;
     private final StockBalanceRepository stockBalanceRepository;
-    private final com.stocksense.operation.StockOperationRepository stockOperationRepository;
+    private final StockOperationRepository stockOperationRepository;
+    private final LocationRepository locationRepository;
+    private final LocationStockBalanceRepository locationStockBalanceRepository;
 
     public ProductService(ProductRepository productRepository,
                           StockBalanceRepository stockBalanceRepository,
-                          com.stocksense.operation.StockOperationRepository stockOperationRepository) {
+                          StockOperationRepository stockOperationRepository) {
+        this(productRepository, stockBalanceRepository, stockOperationRepository, null, null);
+    }
+
+    @Autowired
+    public ProductService(ProductRepository productRepository,
+                          StockBalanceRepository stockBalanceRepository,
+                          StockOperationRepository stockOperationRepository,
+                          @Autowired(required = false) LocationRepository locationRepository,
+                          @Autowired(required = false) LocationStockBalanceRepository locationStockBalanceRepository) {
         this.productRepository = productRepository;
         this.stockBalanceRepository = stockBalanceRepository;
         this.stockOperationRepository = stockOperationRepository;
+        this.locationRepository = locationRepository;
+        this.locationStockBalanceRepository = locationStockBalanceRepository;
     }
 
     @Transactional(readOnly = true)
     public List<ProductResponse> getAllProducts(String search, String category) {
+        return getAllProducts(search, category, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ProductResponse> getAllProducts(String search, String category, Long locationId) {
         List<Product> products = productRepository.searchProducts(
                 search != null ? search.trim() : null,
                 category != null ? category.trim() : null
         );
+        if (locationId != null && locationStockBalanceRepository != null) {
+            List<LocationStockBalance> balances = locationStockBalanceRepository.findAll();
+            java.util.Set<Long> productIdsAtLoc = balances.stream()
+                    .filter(b -> b.getLocation().getId().equals(locationId))
+                    .map(b -> b.getProduct().getId())
+                    .collect(Collectors.toSet());
+            products = products.stream()
+                    .filter(p -> productIdsAtLoc.contains(p.getId()))
+                    .collect(Collectors.toList());
+        }
         return products.stream()
                 .map(ProductResponse::fromEntity)
                 .collect(Collectors.toList());
@@ -74,9 +110,28 @@ public class ProductService {
 
         Product savedProduct = productRepository.save(product);
 
-        // Atomic creation of zero-valued StockBalance in the same transaction
-        StockBalance balance = new StockBalance(savedProduct, BigDecimal.ZERO);
+        // Atomic creation of StockBalance in the same transaction
+        BigDecimal initialQty = request.getInitialStock() != null && request.getInitialStock().compareTo(BigDecimal.ZERO) > 0
+                ? request.getInitialStock()
+                : BigDecimal.ZERO;
+
+        StockBalance balance = new StockBalance(savedProduct, initialQty);
         stockBalanceRepository.save(balance);
+
+        // Also track location balance if warehouse module is active
+        if (locationRepository != null && locationStockBalanceRepository != null) {
+            Location location = null;
+            if (request.getLocationId() != null) {
+                location = locationRepository.findById(request.getLocationId()).orElse(null);
+            }
+            if (location == null) {
+                location = locationRepository.findByCode(LocationService.DEFAULT_LOCATION_CODE).orElse(null);
+            }
+            if (location != null) {
+                LocationStockBalance locBal = new LocationStockBalance(savedProduct, location, initialQty);
+                locationStockBalanceRepository.save(locBal);
+            }
+        }
 
         return ProductResponse.fromEntity(savedProduct);
     }
@@ -129,6 +184,9 @@ public class ProductService {
         if (balance != null) {
             stockBalanceRepository.delete(balance);
         }
+        if (locationStockBalanceRepository != null) {
+            locationStockBalanceRepository.deleteByProductId(id);
+        }
         productRepository.delete(product);
     }
 
@@ -137,7 +195,25 @@ public class ProductService {
         Product product = findEntityById(productId);
         StockBalance balance = stockBalanceRepository.findByProductId(productId)
                 .orElseGet(() -> new StockBalance(product, BigDecimal.ZERO));
-        return StockBalanceResponse.fromEntity(balance);
+
+        StockBalanceResponse response = StockBalanceResponse.fromEntity(balance);
+        response.setTotalQuantity(balance.getQuantity());
+
+        if (locationStockBalanceRepository != null) {
+            List<LocationStockBalance> locBalances = locationStockBalanceRepository.findAllByProductIdWithDetails(productId);
+            List<LocationBalanceItem> items = locBalances.stream().map(lb -> new LocationBalanceItem(
+                    lb.getLocation().getId(),
+                    lb.getLocation().getName(),
+                    lb.getLocation().getCode(),
+                    lb.getLocation().getWarehouse().getId(),
+                    lb.getLocation().getWarehouse().getName(),
+                    lb.getLocation().getWarehouse().getCode(),
+                    lb.getQuantity()
+            )).collect(Collectors.toList());
+            response.setLocationBalances(items);
+        }
+
+        return response;
     }
 
     @Transactional(readOnly = true)
@@ -145,16 +221,15 @@ public class ProductService {
         return productRepository.findDistinctCategories();
     }
 
-    @Transactional(readOnly = true)
-    public Product findEntityById(Long id) {
+    private Product findEntityById(Long id) {
+        if (id == null) {
+            throw new IllegalArgumentException("Product ID cannot be null");
+        }
         return productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product", "id", id));
     }
 
-    /**
-     * Extensibility hook for validating stock movement history before deletion.
-     */
-    protected boolean hasStockMovements(Product product) {
-        return product != null && stockOperationRepository.existsByProductId(product.getId());
+    private boolean hasStockMovements(Product product) {
+        return stockOperationRepository.existsByProductId(product.getId());
     }
 }

@@ -21,6 +21,8 @@ public class CreateAdjustmentRequest {
     @Size(max = 500, message = "Notes must not exceed 500 characters")
     private String notes;
 
+    private Long locationId;
+
     public CreateAdjustmentRequest() {
     }
 
@@ -61,5 +63,13 @@ public class CreateAdjustmentRequest {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public Long getLocationId() {
+        return locationId;
+    }
+
+    public void setLocationId(Long locationId) {
+        this.locationId = locationId;
     }
 }

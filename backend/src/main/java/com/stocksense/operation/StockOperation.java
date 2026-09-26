@@ -25,6 +25,18 @@ public class StockOperation {
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "location_id")
+    private com.stocksense.warehouse.Location location;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "source_location_id")
+    private com.stocksense.warehouse.Location sourceLocation;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "destination_location_id")
+    private com.stocksense.warehouse.Location destinationLocation;
+
     @Column(nullable = false, precision = 18, scale = 4)
     private BigDecimal quantity;
 
@@ -47,6 +59,17 @@ public class StockOperation {
                           BigDecimal quantityChange, String reference, String notes) {
         this.operationType = operationType;
         this.product = product;
+        this.quantity = quantity;
+        this.quantityChange = quantityChange;
+        this.reference = reference != null ? reference.trim() : null;
+        this.notes = notes != null ? notes.trim() : null;
+    }
+
+    public StockOperation(OperationType operationType, Product product, com.stocksense.warehouse.Location location,
+                          BigDecimal quantity, BigDecimal quantityChange, String reference, String notes) {
+        this.operationType = operationType;
+        this.product = product;
+        this.location = location;
         this.quantity = quantity;
         this.quantityChange = quantityChange;
         this.reference = reference != null ? reference.trim() : null;
@@ -114,6 +137,30 @@ public class StockOperation {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public com.stocksense.warehouse.Location getLocation() {
+        return location;
+    }
+
+    public void setLocation(com.stocksense.warehouse.Location location) {
+        this.location = location;
+    }
+
+    public com.stocksense.warehouse.Location getSourceLocation() {
+        return sourceLocation;
+    }
+
+    public void setSourceLocation(com.stocksense.warehouse.Location sourceLocation) {
+        this.sourceLocation = sourceLocation;
+    }
+
+    public com.stocksense.warehouse.Location getDestinationLocation() {
+        return destinationLocation;
+    }
+
+    public void setDestinationLocation(com.stocksense.warehouse.Location destinationLocation) {
+        this.destinationLocation = destinationLocation;
     }
 
     public LocalDateTime getCreatedAt() {

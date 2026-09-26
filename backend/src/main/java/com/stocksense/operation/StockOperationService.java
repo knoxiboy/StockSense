@@ -12,6 +12,12 @@ import com.stocksense.operation.dto.CreateReceiptRequest;
 import com.stocksense.operation.dto.StockOperationResponse;
 import com.stocksense.product.Product;
 import com.stocksense.product.ProductRepository;
+import com.stocksense.warehouse.Location;
+import com.stocksense.warehouse.LocationRepository;
+import com.stocksense.warehouse.LocationService;
+import com.stocksense.warehouse.LocationStockBalance;
+import com.stocksense.warehouse.LocationStockBalanceRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -30,15 +36,29 @@ public class StockOperationService {
     private final StockBalanceRepository stockBalanceRepository;
     private final StockOperationRepository stockOperationRepository;
     private final StockLedgerRepository stockLedgerRepository;
+    private final LocationRepository locationRepository;
+    private final LocationStockBalanceRepository locationStockBalanceRepository;
 
     public StockOperationService(ProductRepository productRepository,
                                  StockBalanceRepository stockBalanceRepository,
                                  StockOperationRepository stockOperationRepository,
                                  StockLedgerRepository stockLedgerRepository) {
+        this(productRepository, stockBalanceRepository, stockOperationRepository, stockLedgerRepository, null, null);
+    }
+
+    @Autowired
+    public StockOperationService(ProductRepository productRepository,
+                                 StockBalanceRepository stockBalanceRepository,
+                                 StockOperationRepository stockOperationRepository,
+                                 StockLedgerRepository stockLedgerRepository,
+                                 @Autowired(required = false) LocationRepository locationRepository,
+                                 @Autowired(required = false) LocationStockBalanceRepository locationStockBalanceRepository) {
         this.productRepository = productRepository;
         this.stockBalanceRepository = stockBalanceRepository;
         this.stockOperationRepository = stockOperationRepository;
         this.stockLedgerRepository = stockLedgerRepository;
+        this.locationRepository = locationRepository;
+        this.locationStockBalanceRepository = locationStockBalanceRepository;
     }
 
     @Transactional
@@ -50,7 +70,7 @@ public class StockOperationService {
             throw new IllegalArgumentException("Receipt quantity must be strictly greater than zero");
         }
 
-        // Acquire pessimistic write lock within transaction
+        // Acquire pessimistic write lock within transaction on master balance
         StockBalance balance = getOrCreateLockedBalance(product);
 
         BigDecimal previousQuantity = balance.getQuantity();
@@ -59,9 +79,17 @@ public class StockOperationService {
         balance.setQuantity(newBalance);
         stockBalanceRepository.save(balance);
 
+        Location location = resolveLocation(request.getLocationId());
+        if (location != null && locationStockBalanceRepository != null) {
+            LocationStockBalance locBal = getOrCreateLockedLocationBalance(product, location);
+            locBal.setQuantity(locBal.getQuantity().add(quantity));
+            locationStockBalanceRepository.save(locBal);
+        }
+
         StockOperation operation = new StockOperation(
                 OperationType.RECEIPT,
                 product,
+                location,
                 quantity,
                 quantityChange,
                 request.getReference(),
@@ -74,6 +102,7 @@ public class StockOperationService {
                 savedOperation,
                 product,
                 OperationType.RECEIPT,
+                location,
                 quantityChange,
                 previousQuantity,
                 newBalance
@@ -104,6 +133,20 @@ public class StockOperationService {
             ));
         }
 
+        Location location = resolveLocation(request.getLocationId());
+        if (location != null && locationStockBalanceRepository != null) {
+            LocationStockBalance locBal = getOrCreateLockedLocationBalance(product, location);
+            if (request.getLocationId() != null && locBal.getQuantity().compareTo(quantity) < 0) {
+                throw new ConflictException(String.format(
+                        "Insufficient stock at location '%s' for product '%s'. Requested: %s %s, Available: %s %s.",
+                        location.getName(), product.getName(), quantity, product.getUnit(),
+                        locBal.getQuantity(), product.getUnit()
+                ));
+            }
+            locBal.setQuantity(locBal.getQuantity().subtract(quantity).max(BigDecimal.ZERO));
+            locationStockBalanceRepository.save(locBal);
+        }
+
         BigDecimal quantityChange = quantity.negate();
         BigDecimal newBalance = previousQuantity.subtract(quantity);
         balance.setQuantity(newBalance);
@@ -112,6 +155,7 @@ public class StockOperationService {
         StockOperation operation = new StockOperation(
                 OperationType.DELIVERY,
                 product,
+                location,
                 quantity,
                 quantityChange,
                 request.getReference(),
@@ -124,6 +168,7 @@ public class StockOperationService {
                 savedOperation,
                 product,
                 OperationType.DELIVERY,
+                location,
                 quantityChange,
                 previousQuantity,
                 newBalance
@@ -150,9 +195,17 @@ public class StockOperationService {
         balance.setQuantity(countedQuantity);
         stockBalanceRepository.save(balance);
 
+        Location location = resolveLocation(request.getLocationId());
+        if (location != null && locationStockBalanceRepository != null) {
+            LocationStockBalance locBal = getOrCreateLockedLocationBalance(product, location);
+            locBal.setQuantity(countedQuantity);
+            locationStockBalanceRepository.save(locBal);
+        }
+
         StockOperation operation = new StockOperation(
                 OperationType.ADJUSTMENT,
                 product,
+                location,
                 countedQuantity,
                 quantityChange,
                 request.getReference(),
@@ -165,6 +218,7 @@ public class StockOperationService {
                 savedOperation,
                 product,
                 OperationType.ADJUSTMENT,
+                location,
                 quantityChange,
                 previousQuantity,
                 countedQuantity
@@ -178,25 +232,31 @@ public class StockOperationService {
     public StockOperationResponse getOperationById(Long id) {
         StockOperation op = stockOperationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("StockOperation", "id", id));
-
         BigDecimal currentBalance = stockBalanceRepository.findByProductId(op.getProduct().getId())
                 .map(StockBalance::getQuantity)
                 .orElse(BigDecimal.ZERO);
-
         return StockOperationResponse.fromEntity(op, currentBalance);
     }
 
     @Transactional(readOnly = true)
-    public List<StockOperationResponse> getOperations(Long productId, OperationType operationType, int page, int size) {
-        if (productId != null && !productRepository.existsById(productId)) {
-            throw new ResourceNotFoundException("Product", "id", productId);
+    public List<StockOperationResponse> getOperations(Long productId, OperationType type, int page, int size) {
+        if (page < 0) {
+            throw new IllegalArgumentException("Page index cannot be negative");
+        }
+        if (size <= 0 || size > 100) {
+            throw new IllegalArgumentException("Page size must be between 1 and 100");
+        }
+        if (productId != null) {
+            if (productId <= 0) {
+                throw new IllegalArgumentException("Product ID must be greater than zero");
+            }
+            if (!productRepository.existsById(productId)) {
+                throw new ResourceNotFoundException("Product", "id", productId);
+            }
         }
 
-        int validatedPage = Math.max(page, 0);
-        int validatedSize = (size <= 0 || size > 100) ? 20 : size;
-        Pageable pageable = PageRequest.of(validatedPage, validatedSize);
-
-        Page<StockOperation> pageResult = stockOperationRepository.findFiltered(productId, operationType, pageable);
+        Pageable pageable = PageRequest.of(page, size);
+        Page<StockOperation> pageResult = stockOperationRepository.findFiltered(productId, type, pageable);
 
         // Pre-fetch balances to avoid N+1 queries
         List<Long> productIds = pageResult.getContent().stream()
@@ -227,11 +287,30 @@ public class StockOperationService {
                 .orElseThrow(() -> new ResourceNotFoundException("Product", "id", productId));
     }
 
+    private Location resolveLocation(Long locationId) {
+        if (locationId != null && locationRepository != null) {
+            return locationRepository.findById(locationId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Location", "id", locationId));
+        }
+        if (locationRepository != null) {
+            return locationRepository.findByCode(LocationService.DEFAULT_LOCATION_CODE).orElse(null);
+        }
+        return null;
+    }
+
     private StockBalance getOrCreateLockedBalance(Product product) {
         return stockBalanceRepository.findWithLockByProductId(product.getId())
                 .orElseGet(() -> {
                     StockBalance newBalance = new StockBalance(product, BigDecimal.ZERO);
                     return stockBalanceRepository.save(newBalance);
+                });
+    }
+
+    private LocationStockBalance getOrCreateLockedLocationBalance(Product product, Location location) {
+        return locationStockBalanceRepository.findWithLockByProductIdAndLocationId(product.getId(), location.getId())
+                .orElseGet(() -> {
+                    LocationStockBalance newBal = new LocationStockBalance(product, location, BigDecimal.ZERO);
+                    return locationStockBalanceRepository.save(newBal);
                 });
     }
 }

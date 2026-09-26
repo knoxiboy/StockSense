@@ -17,6 +17,8 @@ export const ledgerApi = {
     if (params?.type) queryParams.type = params.type;
     if (params?.from) queryParams.from = params.from;
     if (params?.to) queryParams.to = params.to;
+    if (params?.locationId) queryParams.locationId = params.locationId;
+    if (params?.warehouseId) queryParams.warehouseId = params.warehouseId;
     if (params?.page !== undefined) queryParams.page = params.page;
     if (params?.size !== undefined) queryParams.size = params.size;
 

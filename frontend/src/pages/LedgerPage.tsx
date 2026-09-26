@@ -7,11 +7,15 @@ import {
   ChevronRight,
   Eye,
   CheckCircle2,
+  MapPin,
+  ArrowRight,
 } from 'lucide-react';
 import { ledgerApi } from '../api/ledger';
 import { productApi } from '../api/products';
+import { warehouseApi, locationApi } from '../api/warehouses';
 import { StockLedgerEntry, LedgerFilterParams } from '../types/ledger';
 import { Product } from '../types/product';
+import { Warehouse, Location } from '../types/warehouse';
 import { OperationType } from '../types/operation';
 import Badge from '../components/ui/Badge';
 import Modal from '../components/ui/Modal';
@@ -29,12 +33,16 @@ export const LedgerPage: React.FC<LedgerPageProps> = ({
 }) => {
   const [entries, setEntries] = useState<StockLedgerEntry[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   // Filters
   const [selectedProductId, setSelectedProductId] = useState<number | ''>('');
   const [selectedType, setSelectedType] = useState<OperationType | ''>('');
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState<number | ''>('');
+  const [selectedLocationId, setSelectedLocationId] = useState<number | ''>('');
   const [fromDate, setFromDate] = useState<string>('');
   const [toDate, setToDate] = useState<string>('');
   const [dateError, setDateError] = useState<string | null>(null);
@@ -48,9 +56,11 @@ export const LedgerPage: React.FC<LedgerPageProps> = ({
   // Detail Modal
   const [selectedEntry, setSelectedEntry] = useState<StockLedgerEntry | null>(null);
 
-  // Load products list for dropdown filter
+  // Load products, warehouses, and locations
   useEffect(() => {
     productApi.getAll().then(setProducts).catch(() => {});
+    warehouseApi.getAll().then(setWarehouses).catch(() => {});
+    locationApi.getAll().then(setLocations).catch(() => {});
   }, []);
 
   const loadLedgerEntries = useCallback(async () => {
@@ -69,6 +79,8 @@ export const LedgerPage: React.FC<LedgerPageProps> = ({
       };
       if (selectedProductId !== '') params.productId = Number(selectedProductId);
       if (selectedType !== '') params.type = selectedType as OperationType;
+      if (selectedWarehouseId !== '') params.warehouseId = Number(selectedWarehouseId);
+      if (selectedLocationId !== '') params.locationId = Number(selectedLocationId);
       if (fromDate) params.from = fromDate;
       if (toDate) params.to = toDate;
 
@@ -83,7 +95,7 @@ export const LedgerPage: React.FC<LedgerPageProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, selectedProductId, selectedType, fromDate, toDate, onErrorToast]);
+  }, [page, pageSize, selectedProductId, selectedType, selectedWarehouseId, selectedLocationId, fromDate, toDate, onErrorToast]);
 
   useEffect(() => {
     loadLedgerEntries();
@@ -92,6 +104,8 @@ export const LedgerPage: React.FC<LedgerPageProps> = ({
   const handleResetFilters = () => {
     setSelectedProductId('');
     setSelectedType('');
+    setSelectedWarehouseId('');
+    setSelectedLocationId('');
     setFromDate('');
     setToDate('');
     setDateError(null);
@@ -99,7 +113,12 @@ export const LedgerPage: React.FC<LedgerPageProps> = ({
   };
 
   const isFilterActive =
-    selectedProductId !== '' || selectedType !== '' || fromDate !== '' || toDate !== '';
+    selectedProductId !== '' ||
+    selectedType !== '' ||
+    selectedWarehouseId !== '' ||
+    selectedLocationId !== '' ||
+    fromDate !== '' ||
+    toDate !== '';
 
   const startRecord = totalCount === 0 ? 0 : page * pageSize + 1;
   const endRecord = Math.min((page + 1) * pageSize, totalCount);
@@ -107,7 +126,7 @@ export const LedgerPage: React.FC<LedgerPageProps> = ({
   return (
     <div className="ledger-page">
       {/* Filter and Query Toolbar */}
-      <div className="card toolbar-card">
+      <div className="card toolbar-card" style={{ padding: '16px 20px', marginBottom: '20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
           {/* Product Filter */}
           <select
@@ -138,7 +157,42 @@ export const LedgerPage: React.FC<LedgerPageProps> = ({
             <option value="">All Operation Types</option>
             <option value="RECEIPT">Receipts (Inbound)</option>
             <option value="DELIVERY">Deliveries (Outbound)</option>
+            <option value="TRANSFER">Internal Transfers (Shift)</option>
             <option value="ADJUSTMENT">Adjustments (Counts)</option>
+          </select>
+
+          {/* Warehouse Filter */}
+          <select
+            className="filter-select"
+            value={selectedWarehouseId}
+            onChange={(e) => {
+              setSelectedWarehouseId(e.target.value ? Number(e.target.value) : '');
+              setPage(0);
+            }}
+          >
+            <option value="">All Warehouses</option>
+            {warehouses.map((w) => (
+              <option key={w.id} value={w.id}>
+                {w.name} ({w.code})
+              </option>
+            ))}
+          </select>
+
+          {/* Location Filter */}
+          <select
+            className="filter-select"
+            value={selectedLocationId}
+            onChange={(e) => {
+              setSelectedLocationId(e.target.value ? Number(e.target.value) : '');
+              setPage(0);
+            }}
+          >
+            <option value="">All Locations</option>
+            {locations.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.name} ({l.code})
+              </option>
+            ))}
           </select>
 
           {/* Date Range: From */}
@@ -189,7 +243,7 @@ export const LedgerPage: React.FC<LedgerPageProps> = ({
           )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '12px' }}>
           <button
             type="button"
             className="btn btn-secondary btn-sm"
@@ -197,7 +251,7 @@ export const LedgerPage: React.FC<LedgerPageProps> = ({
             title="Refresh Ledger"
           >
             <RefreshCw size={14} />
-            <span>Refresh</span>
+            <span>Refresh Ledger</span>
           </button>
         </div>
       </div>
@@ -250,8 +304,8 @@ export const LedgerPage: React.FC<LedgerPageProps> = ({
               }
               description={
                 isFilterActive
-                  ? 'Try clearing or widening your product, operation type, or date boundaries.'
-                  : 'Every verified stock receipt, delivery, and adjustment will create an immutable audit record here.'
+                  ? 'Try clearing or widening your product, location, or date filters.'
+                  : 'Every verified stock receipt, delivery, transfer, and adjustment will create an immutable audit record here.'
               }
               actionText={isFilterActive ? 'Clear Filters' : undefined}
               onAction={isFilterActive ? handleResetFilters : undefined}
@@ -265,9 +319,10 @@ export const LedgerPage: React.FC<LedgerPageProps> = ({
                   <tr>
                     <th>Timestamp</th>
                     <th>Product & SKU</th>
-                    <th>Operation Type</th>
+                    <th>Operation</th>
+                    <th>Warehouse / Location</th>
                     <th>Previous Stock</th>
-                    <th>Quantity Change</th>
+                    <th>Change</th>
                     <th>Resulting Stock</th>
                     <th>Reference</th>
                     <th style={{ textAlign: 'right' }}>Audit</th>
@@ -278,9 +333,10 @@ export const LedgerPage: React.FC<LedgerPageProps> = ({
                     const isPositive = entry.quantityChange > 0;
                     const isZero = entry.quantityChange === 0;
 
-                    let badgeVariant: 'success' | 'info' | 'warning' = 'info';
+                    let badgeVariant: 'success' | 'info' | 'warning' | 'secondary' = 'info';
                     if (entry.operationType === 'RECEIPT') badgeVariant = 'success';
                     if (entry.operationType === 'ADJUSTMENT') badgeVariant = 'warning';
+                    if (entry.operationType === 'TRANSFER') badgeVariant = 'info';
 
                     return (
                       <tr key={entry.id}>
@@ -295,6 +351,29 @@ export const LedgerPage: React.FC<LedgerPageProps> = ({
                         </td>
                         <td>
                           <Badge variant={badgeVariant}>{entry.operationType}</Badge>
+                        </td>
+                        <td>
+                          {entry.locationName ? (
+                            <div>
+                              <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <MapPin size={13} style={{ color: 'var(--primary)' }} />
+                                {entry.locationName}
+                              </div>
+                              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                                {entry.warehouseName || 'Main Hub'}
+                              </div>
+                            </div>
+                          ) : (
+                            <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>General Stock</span>
+                          )}
+
+                          {entry.operationType === 'TRANSFER' && (entry.sourceLocationName || entry.destinationLocationName) && (
+                            <div style={{ fontSize: '0.72rem', color: 'var(--primary)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <span>{entry.sourceLocationName || 'Src'}</span>
+                              <ArrowRight size={11} />
+                              <span>{entry.destinationLocationName || 'Dst'}</span>
+                            </div>
+                          )}
                         </td>
                         <td style={{ fontWeight: 500, color: 'var(--text-muted)' }}>
                           {formatQuantity(entry.previousQuantity, entry.unit)}
@@ -350,7 +429,6 @@ export const LedgerPage: React.FC<LedgerPageProps> = ({
               </div>
 
               <div className="pagination-actions">
-                {/* Page Size Selector */}
                 <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Per page:</span>
                 <select
                   className="filter-select"
@@ -369,23 +447,23 @@ export const LedgerPage: React.FC<LedgerPageProps> = ({
 
                 <button
                   type="button"
-                  className="pagination-btn"
-                  onClick={() => setPage((p) => Math.max(p - 1, 0))}
-                  disabled={page === 0 || loading}
+                  className="btn btn-secondary btn-sm"
+                  disabled={page === 0}
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
                 >
                   <ChevronLeft size={16} />
-                  <span>Previous</span>
+                  <span>Prev</span>
                 </button>
 
-                <span className="pagination-page-indicator">
+                <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
                   Page {page + 1} of {totalPages}
                 </span>
 
                 <button
                   type="button"
-                  className="pagination-btn"
-                  onClick={() => setPage((p) => p + 1)}
-                  disabled={page + 1 >= totalPages || loading}
+                  className="btn btn-secondary btn-sm"
+                  disabled={page >= totalPages - 1}
+                  onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
                 >
                   <span>Next</span>
                   <ChevronRight size={16} />
@@ -396,12 +474,12 @@ export const LedgerPage: React.FC<LedgerPageProps> = ({
         )}
       </div>
 
-      {/* Read-Only Entry Inspection Modal */}
+      {/* Entry Audit Detail Modal */}
       {selectedEntry && (
         <Modal
           isOpen={!!selectedEntry}
+          title={`Audit Entry #${selectedEntry.id}`}
           onClose={() => setSelectedEntry(null)}
-          title={`Ledger Audit Record #${selectedEntry.id}`}
           footer={
             <button
               type="button"
@@ -460,6 +538,29 @@ export const LedgerPage: React.FC<LedgerPageProps> = ({
                   </Badge>
                 </div>
               </div>
+
+              <div>
+                <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                  Warehouse & Location
+                </label>
+                <div style={{ fontWeight: 600 }}>
+                  {selectedEntry.locationName ? `${selectedEntry.locationName} (${selectedEntry.locationCode})` : 'General Stock'}
+                </div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                  {selectedEntry.warehouseName ? `${selectedEntry.warehouseName} [${selectedEntry.warehouseCode}]` : 'Central Warehouse'}
+                </div>
+              </div>
+
+              {selectedEntry.operationType === 'TRANSFER' && (
+                <div>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                    Transfer Routing
+                  </label>
+                  <div style={{ fontWeight: 600, color: 'var(--primary)', fontSize: '0.85rem' }}>
+                    {selectedEntry.sourceLocationName || 'Source'} ➔ {selectedEntry.destinationLocationName || 'Destination'}
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>

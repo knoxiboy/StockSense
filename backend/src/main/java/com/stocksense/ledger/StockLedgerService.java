@@ -47,6 +47,8 @@ public class StockLedgerService {
             OperationType type,
             LocalDate from,
             LocalDate to,
+            Long locationId,
+            Long warehouseId,
             int page,
             int size) {
 
@@ -87,11 +89,32 @@ public class StockLedgerService {
             if (toDate != null) {
                 predicates.add(cb.lessThanOrEqualTo(root.get("createdAt"), toDate));
             }
+            if (locationId != null) {
+                predicates.add(cb.or(
+                        cb.equal(root.get("location").get("id"), locationId),
+                        cb.equal(root.get("sourceLocation").get("id"), locationId),
+                        cb.equal(root.get("destinationLocation").get("id"), locationId)
+                ));
+            }
+            if (warehouseId != null) {
+                predicates.add(cb.equal(root.get("warehouse").get("id"), warehouseId));
+            }
             return cb.and(predicates.toArray(new Predicate[0]));
         };
 
         Page<StockLedgerEntry> entries = stockLedgerRepository.findAll(spec, pageable);
         return entries.map(StockLedgerEntryResponse::fromEntity);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<StockLedgerEntryResponse> getLedgerEntriesPaged(
+            Long productId,
+            OperationType type,
+            LocalDate from,
+            LocalDate to,
+            int page,
+            int size) {
+        return getLedgerEntriesPaged(productId, type, from, to, null, null, page, size);
     }
 
     @Transactional(readOnly = true)

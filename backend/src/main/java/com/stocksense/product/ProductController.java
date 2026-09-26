@@ -24,8 +24,11 @@ public class ProductController {
     @GetMapping
     public ResponseEntity<List<ProductResponse>> getAllProducts(
             @RequestParam(required = false) String search,
-            @RequestParam(required = false) String category) {
-        List<ProductResponse> products = productService.getAllProducts(search, category);
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) Long locationId) {
+        List<ProductResponse> products = (locationId != null)
+                ? productService.getAllProducts(search, category, locationId)
+                : productService.getAllProducts(search, category);
         return ResponseEntity.ok(products);
     }
 
