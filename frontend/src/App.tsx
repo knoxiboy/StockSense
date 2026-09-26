@@ -15,6 +15,8 @@ import WarehousesPage from './pages/WarehousesPage';
 import LedgerPage from './pages/LedgerPage';
 import SettingsPage from './pages/SettingsPage';
 import AuthModal from './components/auth/AuthModal';
+import MyProfileModal from './components/auth/MyProfileModal';
+import ManagerApprovalsModal from './components/auth/ManagerApprovalsModal';
 import AuthScreen from './components/auth/AuthScreen';
 import { authApi } from './api/auth';
 import { User } from './types/auth';
@@ -26,6 +28,8 @@ export const App: React.FC = () => {
   const [actionProductId, setActionProductId] = useState<number | undefined>(undefined);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isManagerApprovalsModalOpen, setIsManagerApprovalsModalOpen] = useState(false);
   const [isLoadingSession, setIsLoadingSession] = useState(true);
   const { toasts, addToast, removeToast } = useToast();
 
@@ -58,6 +62,8 @@ export const App: React.FC = () => {
       setCurrentUser(null);
       setCurrentPage('dashboard');
       setIsAuthModalOpen(false);
+      setIsProfileModalOpen(false);
+      setIsManagerApprovalsModalOpen(false);
       addToast('Session expired or token invalid. Please sign in again.', 'error');
     };
 
@@ -80,6 +86,8 @@ export const App: React.FC = () => {
       setCurrentUser(null);
       setCurrentPage('dashboard');
       setIsAuthModalOpen(false);
+      setIsProfileModalOpen(false);
+      setIsManagerApprovalsModalOpen(false);
       addToast('You have been logged out successfully.', 'success');
     }
   };
@@ -221,9 +229,30 @@ export const App: React.FC = () => {
           totalProductsCount={totalProductsCount}
           currentUser={currentUser}
           onOpenAuth={() => setIsAuthModalOpen(true)}
+          onOpenProfile={() => setIsProfileModalOpen(true)}
+          onOpenManagerApprovals={() => setIsManagerApprovalsModalOpen(true)}
+          onLogout={handleLogout}
         />
         <main className="content-body">{renderCurrentPage()}</main>
       </div>
+
+      <MyProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        currentUser={currentUser}
+        onUserUpdate={(updated) => setCurrentUser(updated)}
+        onLogout={handleLogout}
+        onSuccessToast={(msg) => addToast(msg, 'success')}
+        onErrorToast={(msg) => addToast(msg, 'error')}
+      />
+
+      <ManagerApprovalsModal
+        isOpen={isManagerApprovalsModalOpen}
+        onClose={() => setIsManagerApprovalsModalOpen(false)}
+        currentUser={currentUser}
+        onSuccessToast={(msg) => addToast(msg, 'success')}
+        onErrorToast={(msg) => addToast(msg, 'error')}
+      />
 
       <AuthModal
         isOpen={isAuthModalOpen}

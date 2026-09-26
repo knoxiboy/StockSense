@@ -5,6 +5,7 @@ import com.stocksense.inventory.StockBalanceRepository;
 import com.stocksense.warehouse.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -24,6 +25,15 @@ public class DatabaseInitializer implements CommandLineRunner {
     private final com.stocksense.auth.UserRepository userRepository;
     private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
     private final JdbcTemplate jdbcTemplate;
+
+    @Value("${stocksense.initial-manager.email:${STOCKSENSE_INITIAL_MANAGER_EMAIL:}}")
+    private String initialManagerEmail;
+
+    @Value("${stocksense.initial-manager.password:${STOCKSENSE_INITIAL_MANAGER_PASSWORD:}}")
+    private String initialManagerPassword;
+
+    @Value("${stocksense.initial-manager.name:${STOCKSENSE_INITIAL_MANAGER_NAME:System Administrator}}")
+    private String initialManagerName;
 
     public DatabaseInitializer(WarehouseRepository warehouseRepository,
                                LocationRepository locationRepository,
@@ -104,27 +114,22 @@ public class DatabaseInitializer implements CommandLineRunner {
             log.info("StockSense DatabaseInitializer: Successfully initialized {} location stock balance(s) in default location.", seededCount);
         }
 
-        // 4. Ensure Default Manager and Worker accounts
-        if (userRepository.findByEmailIgnoreCase("manager@stocksense.io").isEmpty()) {
-            com.stocksense.auth.User manager = new com.stocksense.auth.User(
-                    "manager@stocksense.io",
-                    passwordEncoder.encode("ManagerPassword123!"),
-                    "StockSense Manager",
-                    com.stocksense.auth.User.ROLE_MANAGER
-            );
-            userRepository.save(manager);
-            log.info("StockSense DatabaseInitializer: Seeded default MANAGER user 'manager@stocksense.io'.");
-        }
-
-        if (userRepository.findByEmailIgnoreCase("worker@stocksense.io").isEmpty()) {
-            com.stocksense.auth.User worker = new com.stocksense.auth.User(
-                    "worker@stocksense.io",
-                    passwordEncoder.encode("WorkerPassword123!"),
-                    "Warehouse Worker",
-                    com.stocksense.auth.User.ROLE_WORKER
-            );
-            userRepository.save(worker);
-            log.info("StockSense DatabaseInitializer: Seeded default WORKER user 'worker@stocksense.io'.");
+        // 4. Secure Initial Manager Bootstrap (Only if configured via environment and no Manager exists)
+        if (initialManagerEmail != null && !initialManagerEmail.isBlank()
+                && initialManagerPassword != null && !initialManagerPassword.isBlank()) {
+            String normEmail = initialManagerEmail.trim().toLowerCase();
+            if (userRepository.findByEmailIgnoreCase(normEmail).isEmpty() && userRepository.countByRole(com.stocksense.auth.User.ROLE_MANAGER) == 0) {
+                com.stocksense.auth.User manager = new com.stocksense.auth.User(
+                        normEmail,
+                        passwordEncoder.encode(initialManagerPassword),
+                        initialManagerName != null && !initialManagerName.isBlank() ? initialManagerName.trim() : "System Administrator",
+                        com.stocksense.auth.User.ROLE_MANAGER
+                );
+                manager.setEmailVerified(true);
+                manager.setEnabled(true);
+                userRepository.save(manager);
+                log.info("StockSense DatabaseInitializer: Bootstrapped initial MANAGER account '{}' from environment configuration.", normEmail);
+            }
         }
 
         log.info("StockSense DatabaseInitializer: Initialization complete.");
