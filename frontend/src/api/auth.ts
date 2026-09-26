@@ -1,5 +1,5 @@
 import http from './http';
-import { User, AuthResponse, LoginDto, RegisterDto, ResetPasswordDto } from '../types/auth';
+import { User, AuthResponse, LoginDto, RegisterDto, RegisterResponse, ResetPasswordDto } from '../types/auth';
 
 const TOKEN_KEY = 'stocksense_auth_token';
 const USER_KEY = 'stocksense_auth_user';
@@ -29,9 +29,21 @@ export const authApi = {
     localStorage.removeItem(USER_KEY);
   },
 
-  async register(data: RegisterDto): Promise<AuthResponse> {
-    const res = await http.post<AuthResponse>('/auth/register', data);
-    this.saveSession(res.data);
+  async register(data: RegisterDto): Promise<RegisterResponse> {
+    const res = await http.post<RegisterResponse>('/auth/register', data);
+    return res.data;
+  },
+
+  async verifyEmailOtp(email: string, otp: string): Promise<AuthResponse> {
+    const res = await http.post<AuthResponse>('/auth/verify-email-otp', { email, otp });
+    if (res.data?.token) {
+      this.saveSession(res.data);
+    }
+    return res.data;
+  },
+
+  async resendVerificationOtp(email: string): Promise<{ message: string }> {
+    const res = await http.post<{ message: string }>('/auth/resend-verification-otp', { email });
     return res.data;
   },
 
@@ -44,6 +56,8 @@ export const authApi = {
   async logout(): Promise<void> {
     try {
       await http.post('/auth/logout');
+    } catch {
+      // Even if network or server fails, ensure local session is cleared
     } finally {
       this.clearSession();
     }
@@ -73,6 +87,22 @@ export const authApi = {
 
   async resetPassword(data: ResetPasswordDto): Promise<{ message: string }> {
     const res = await http.post<{ message: string }>('/auth/reset-password', data);
+    return res.data;
+  },
+
+  // Manager Requests & Approvals
+  async getManagerRequests(): Promise<User[]> {
+    const res = await http.get<User[]>('/auth/manager-requests');
+    return res.data;
+  },
+
+  async approveManagerRequest(userId: number): Promise<User> {
+    const res = await http.post<User>(`/auth/manager-requests/${userId}/approve`);
+    return res.data;
+  },
+
+  async rejectManagerRequest(userId: number): Promise<User> {
+    const res = await http.post<User>(`/auth/manager-requests/${userId}/reject`);
     return res.data;
   },
 };

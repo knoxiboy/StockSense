@@ -8,6 +8,9 @@ export interface HeaderProps {
   totalProductsCount?: number;
   currentUser: User | null;
   onOpenAuth: () => void;
+  onOpenProfile?: () => void;
+  onOpenManagerApprovals?: () => void;
+  onLogout?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = (props) => {

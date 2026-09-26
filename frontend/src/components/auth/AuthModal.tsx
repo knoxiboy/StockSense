@@ -13,7 +13,7 @@ interface AuthModalProps {
   onErrorToast: (msg: string) => void;
 }
 
-type AuthTab = 'LOGIN' | 'REGISTER' | 'FORGOT' | 'RESET' | 'PROFILE';
+type AuthTab = 'LOGIN' | 'REGISTER' | 'VERIFY_REGISTRATION' | 'FORGOT' | 'RESET' | 'PROFILE';
 
 export const AuthModal: React.FC<AuthModalProps> = ({
   isOpen,
@@ -26,9 +26,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [tab, setTab] = useState<AuthTab>(currentUser ? 'PROFILE' : 'LOGIN');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState(currentUser?.fullName || '');
+  const [selectedRole, setSelectedRole] = useState<'WORKER' | 'MANAGER'>('WORKER');
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   if (!isOpen) return null;
@@ -37,7 +40,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     e.preventDefault();
     setSubmitting(true);
     try {
-      const res = await authApi.login({ email, password });
+      const res = await authApi.login({ email: email.trim().toLowerCase(), password });
       onUserChange(res.user);
       onSuccessToast(`Welcome back, ${res.user.fullName}!`);
       onClose();
@@ -50,14 +53,54 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (password !== confirmPassword) {
+      onErrorToast('Passwords do not match.');
+      return;
+    }
+    if (password.length < 6) {
+      onErrorToast('Password must be at least 6 characters.');
+      return;
+    }
+
     setSubmitting(true);
     try {
-      const res = await authApi.register({ email, password, fullName });
-      onUserChange(res.user);
-      onSuccessToast(`Account created successfully! Welcome, ${res.user.fullName}!`);
-      onClose();
+      const res = await authApi.register({
+        email: email.trim().toLowerCase(),
+        password,
+        fullName: fullName.trim(),
+        requestedRole: selectedRole,
+      });
+      onSuccessToast(res.message);
+      setOtp('');
+      setTab('VERIFY_REGISTRATION');
     } catch (err: any) {
       onErrorToast(err.message || 'Registration failed.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleVerifyRegistrationOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      const res = await authApi.verifyEmailOtp(email.trim().toLowerCase(), otp.trim());
+      if (res?.user && res?.token) {
+        onUserChange(res.user);
+        onSuccessToast(`Account activated! Welcome, ${res.user.fullName}!`);
+        onClose();
+      } else {
+        onSuccessToast('Manager access request submitted for administrator approval.');
+        setTab('LOGIN');
+      }
+    } catch (err: any) {
+      const msg = err.message || 'Verification failed.';
+      if (msg.includes('pending administrator approval')) {
+        onSuccessToast('Manager access request submitted for administrator approval.');
+        setTab('LOGIN');
+      } else {
+        onErrorToast(msg);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -67,7 +110,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     e.preventDefault();
     setSubmitting(true);
     try {
-      const res = await authApi.forgotPassword(email);
+      const res = await authApi.forgotPassword(email.trim().toLowerCase());
       onSuccessToast(res.message);
       setTab('RESET');
     } catch (err: any) {
@@ -79,14 +122,29 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (newPassword !== confirmNewPassword) {
+      onErrorToast('New passwords do not match.');
+      return;
+    }
+    if (newPassword.length < 6) {
+      onErrorToast('New password must be at least 6 characters.');
+      return;
+    }
+
     setSubmitting(true);
     try {
-      const res = await authApi.resetPassword({ email, otp, newPassword });
+      const res = await authApi.resetPassword({
+        email: email.trim().toLowerCase(),
+        otp: otp.trim(),
+        newPassword
+      });
       onSuccessToast(res.message);
       setTab('LOGIN');
       setPassword('');
+      setConfirmPassword('');
       setOtp('');
       setNewPassword('');
+      setConfirmNewPassword('');
     } catch (err: any) {
       onErrorToast(err.message || 'Password reset failed. Invalid or expired OTP.');
     } finally {
@@ -98,7 +156,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     e.preventDefault();
     setSubmitting(true);
     try {
-      const updated = await authApi.updateProfile(fullName);
+      const updated = await authApi.updateProfile(fullName.trim());
       onUserChange(updated);
       onSuccessToast('Profile updated successfully!');
       onClose();
@@ -112,11 +170,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const handleLogout = async () => {
     try {
       await authApi.logout();
+    } finally {
       onUserChange(null);
       onSuccessToast('Logged out successfully.');
       onClose();
-    } catch (err: any) {
-      onErrorToast(err.message || 'Error during logout.');
     }
   };
 
@@ -124,10 +181,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     <Modal
       isOpen={isOpen}
       title={
-        tab === 'PROFILE'
+        currentUser
           ? 'User Profile & Account'
           : tab === 'REGISTER'
           ? 'Create StockSense Account'
+          : tab === 'VERIFY_REGISTRATION'
+          ? 'Verify Registration OTP'
           : tab === 'FORGOT'
           ? 'Reset Password (OTP Verification)'
           : tab === 'RESET'
@@ -150,7 +209,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </button>
             <button
               type="button"
-              className={`btn btn-sm ${tab === 'REGISTER' ? 'btn-primary' : 'btn-secondary'}`}
+              className={`btn btn-sm ${tab === 'REGISTER' || tab === 'VERIFY_REGISTRATION' ? 'btn-primary' : 'btn-secondary'}`}
               onClick={() => setTab('REGISTER')}
             >
               <UserPlus size={14} />
@@ -162,21 +221,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               onClick={() => setTab('FORGOT')}
             >
               <KeyRound size={14} />
-              <span>Forgot Password</span>
+              <span>Reset</span>
             </button>
           </div>
         )}
 
         {/* PROFILE TAB */}
-        {currentUser && tab === 'PROFILE' && (
+        {currentUser && (
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px', padding: '14px', background: 'var(--surface-sunken)', borderRadius: '6px' }}>
-              <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: 'var(--primary)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '1.1rem' }}>
+              <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: currentUser.role === 'MANAGER' ? '#2563eb' : '#059669', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '1.1rem' }}>
                 {currentUser.fullName.charAt(0).toUpperCase()}
               </div>
               <div>
                 <div style={{ fontWeight: 700, fontSize: '1rem' }}>{currentUser.fullName}</div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{currentUser.email} • Role: {currentUser.role}</div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{currentUser.email} • Role: <strong>{currentUser.role}</strong></div>
               </div>
             </div>
 
@@ -221,7 +280,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="manager@stocksense.io"
+                placeholder="name@company.com"
               />
             </div>
 
@@ -255,7 +314,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         {/* REGISTER TAB */}
         {!currentUser && tab === 'REGISTER' && (
           <form onSubmit={handleRegister}>
-            <div className="form-group" style={{ marginBottom: '14px' }}>
+            <div className="form-group" style={{ marginBottom: '12px' }}>
               <label className="form-label">Full Name *</label>
               <input
                 type="text"
@@ -263,11 +322,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 required
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                placeholder="John Doe"
+                placeholder="Jane Smith"
               />
             </div>
 
-            <div className="form-group" style={{ marginBottom: '14px' }}>
+            <div className="form-group" style={{ marginBottom: '12px' }}>
               <label className="form-label">Work Email *</label>
               <input
                 type="email"
@@ -275,12 +334,52 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="operator@stocksense.io"
+                placeholder="name@company.com"
               />
             </div>
 
-            <div className="form-group" style={{ marginBottom: '20px' }}>
-              <label className="form-label">Secure Password (min 6 chars) *</label>
+            {/* Role Selection */}
+            <div className="form-group" style={{ marginBottom: '12px' }}>
+              <label className="form-label" style={{ marginBottom: '6px' }}>Select Role *</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div
+                  onClick={() => setSelectedRole('WORKER')}
+                  style={{
+                    padding: '10px',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    background: selectedRole === 'WORKER' ? 'rgba(37, 99, 235, 0.15)' : 'var(--surface-sunken)',
+                    border: `1.5px solid ${selectedRole === 'WORKER' ? '#3b82f6' : 'var(--border-subtle)'}`,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '3px' }}>
+                    <strong style={{ fontSize: '0.85rem' }}>Worker</strong>
+                    <input type="radio" checked={selectedRole === 'WORKER'} onChange={() => setSelectedRole('WORKER')} />
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Warehouse & Inventory ops</div>
+                </div>
+
+                <div
+                  onClick={() => setSelectedRole('MANAGER')}
+                  style={{
+                    padding: '10px',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    background: selectedRole === 'MANAGER' ? 'rgba(147, 51, 234, 0.15)' : 'var(--surface-sunken)',
+                    border: `1.5px solid ${selectedRole === 'MANAGER' ? '#a855f7' : 'var(--border-subtle)'}`,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '3px' }}>
+                    <strong style={{ fontSize: '0.85rem' }}>Manager</strong>
+                    <input type="radio" checked={selectedRole === 'MANAGER'} onChange={() => setSelectedRole('MANAGER')} />
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Requires admin approval</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: '12px' }}>
+              <label className="form-label">Password (min 6 chars) *</label>
               <input
                 type="password"
                 className="form-control"
@@ -292,58 +391,34 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               />
             </div>
 
+            <div className="form-group" style={{ marginBottom: '20px' }}>
+              <label className="form-label">Confirm Password *</label>
+              <input
+                type="password"
+                className="form-control"
+                required
+                minLength={6}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="••••••••"
+              />
+            </div>
+
             <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} disabled={submitting}>
-              {submitting ? 'Creating Account...' : 'Register New Account'}
+              {submitting ? 'Creating Account...' : selectedRole === 'MANAGER' ? 'Request Manager Account' : 'Register Worker Account'}
             </button>
           </form>
         )}
 
-        {/* FORGOT PASSWORD TAB */}
-        {!currentUser && tab === 'FORGOT' && (
-          <form onSubmit={handleForgotPassword}>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '16px' }}>
-              Enter your email address to receive a 6-digit one-time password (OTP). The code expires in 10 minutes.
+        {/* VERIFY REGISTRATION OTP TAB */}
+        {!currentUser && tab === 'VERIFY_REGISTRATION' && (
+          <form onSubmit={handleVerifyRegistrationOtp}>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '14px' }}>
+              Enter the 6-digit verification code sent to <strong>{email}</strong>
             </p>
 
             <div className="form-group" style={{ marginBottom: '20px' }}>
-              <label className="form-label">Registered Email *</label>
-              <input
-                type="email"
-                className="form-control"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="user@stocksense.io"
-              />
-            </div>
-
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button type="button" className="btn btn-secondary" onClick={() => setTab('LOGIN')}>
-                Back to Sign In
-              </button>
-              <button type="submit" className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }} disabled={submitting}>
-                {submitting ? 'Sending OTP...' : 'Send OTP Verification Code'}
-              </button>
-            </div>
-          </form>
-        )}
-
-        {/* RESET PASSWORD TAB */}
-        {!currentUser && tab === 'RESET' && (
-          <form onSubmit={handleResetPassword}>
-            <div className="form-group" style={{ marginBottom: '14px' }}>
-              <label className="form-label">Registered Email *</label>
-              <input
-                type="email"
-                className="form-control"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-
-            <div className="form-group" style={{ marginBottom: '14px' }}>
-              <label className="form-label">6-Digit OTP Verification Code *</label>
+              <label className="form-label">6-Digit Verification Code *</label>
               <input
                 type="text"
                 className="form-control"
@@ -351,12 +426,64 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 maxLength={6}
                 value={otp}
                 onChange={(e) => setOtp(e.target.value.trim())}
-                placeholder="e.g. 123456"
-                style={{ letterSpacing: '4px', fontSize: '1.1rem', fontWeight: 700 }}
+                placeholder="123456"
+                style={{ fontSize: '1.2rem', letterSpacing: '6px', textAlign: 'center' }}
               />
             </div>
 
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button type="button" className="btn btn-secondary" onClick={() => setTab('REGISTER')}>
+                Back
+              </button>
+              <button type="submit" className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }} disabled={submitting || otp.length !== 6}>
+                {submitting ? 'Verifying...' : 'Verify Code & Activate'}
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* FORGOT PASSWORD TAB */}
+        {!currentUser && tab === 'FORGOT' && (
+          <form onSubmit={handleForgotPassword}>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '16px' }}>
+              Enter your registered work email to receive a 6-digit verification code.
+            </p>
             <div className="form-group" style={{ marginBottom: '20px' }}>
+              <label className="form-label">Registered Work Email *</label>
+              <input
+                type="email"
+                className="form-control"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@company.com"
+              />
+            </div>
+
+            <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} disabled={submitting}>
+              {submitting ? 'Sending OTP...' : 'Send Verification Code'}
+            </button>
+          </form>
+        )}
+
+        {/* RESET PASSWORD TAB */}
+        {!currentUser && tab === 'RESET' && (
+          <form onSubmit={handleResetPassword}>
+            <div className="form-group" style={{ marginBottom: '14px' }}>
+              <label className="form-label">6-Digit Code sent to {email} *</label>
+              <input
+                type="text"
+                className="form-control"
+                required
+                maxLength={6}
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.trim())}
+                placeholder="123456"
+                style={{ textAlign: 'center', letterSpacing: '4px', fontWeight: 700 }}
+              />
+            </div>
+
+            <div className="form-group" style={{ marginBottom: '14px' }}>
               <label className="form-label">New Password (min 6 chars) *</label>
               <input
                 type="password"
@@ -369,14 +496,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               />
             </div>
 
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button type="button" className="btn btn-secondary" onClick={() => setTab('LOGIN')}>
-                Cancel
-              </button>
-              <button type="submit" className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }} disabled={submitting}>
-                {submitting ? 'Resetting Password...' : 'Verify OTP & Reset Password'}
-              </button>
+            <div className="form-group" style={{ marginBottom: '20px' }}>
+              <label className="form-label">Confirm New Password *</label>
+              <input
+                type="password"
+                className="form-control"
+                required
+                minLength={6}
+                value={confirmNewPassword}
+                onChange={(e) => setConfirmNewPassword(e.target.value)}
+                placeholder="••••••••"
+              />
             </div>
+
+            <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} disabled={submitting}>
+              {submitting ? 'Updating...' : 'Save New Password & Sign In'}
+            </button>
           </form>
         )}
       </div>

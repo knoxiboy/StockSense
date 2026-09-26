@@ -21,6 +21,8 @@ public class AuthInterceptor implements HandlerInterceptor {
 
     private static final Set<String> PUBLIC_PREFIXES = Set.of(
             "/api/auth/register",
+            "/api/auth/verify-email-otp",
+            "/api/auth/resend-verification-otp",
             "/api/auth/login",
             "/api/auth/forgot-password",
             "/api/auth/verify-otp",
@@ -87,6 +89,11 @@ public class AuthInterceptor implements HandlerInterceptor {
     }
 
     private boolean requiresManagerRole(String method, String uri) {
+        // Manager approvals and administration always require MANAGER
+        if (uri.startsWith("/api/auth/manager-requests")) {
+            return true;
+        }
+
         boolean isMutation = HttpMethod.POST.matches(method)
                 || HttpMethod.PUT.matches(method)
                 || HttpMethod.PATCH.matches(method)
