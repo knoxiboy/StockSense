@@ -4,6 +4,7 @@ StockSense is a robust, full-stack Enterprise Inventory Management System design
 
 Built with Java 21, Spring Boot 3.3.4, PostgreSQL, and React with TypeScript, StockSense provides enterprise-grade scalability, immutable inventory event tracking, and intuitive user workflows for warehouse managers and operational staff.
 
+
 ---
 
 ## Table of Contents
