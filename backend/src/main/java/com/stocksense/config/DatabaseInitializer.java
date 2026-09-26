@@ -21,17 +21,22 @@ public class DatabaseInitializer implements CommandLineRunner {
     private final LocationRepository locationRepository;
     private final StockBalanceRepository stockBalanceRepository;
     private final LocationStockBalanceRepository locationStockBalanceRepository;
+    private final com.stocksense.auth.UserRepository userRepository;
+    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
     private final JdbcTemplate jdbcTemplate;
 
     public DatabaseInitializer(WarehouseRepository warehouseRepository,
                                LocationRepository locationRepository,
                                StockBalanceRepository stockBalanceRepository,
                                LocationStockBalanceRepository locationStockBalanceRepository,
+                               com.stocksense.auth.UserRepository userRepository,
                                JdbcTemplate jdbcTemplate) {
         this.warehouseRepository = warehouseRepository;
         this.locationRepository = locationRepository;
         this.stockBalanceRepository = stockBalanceRepository;
         this.locationStockBalanceRepository = locationStockBalanceRepository;
+        this.userRepository = userRepository;
+        this.passwordEncoder = new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder();
         this.jdbcTemplate = jdbcTemplate;
     }
 
@@ -97,6 +102,29 @@ public class DatabaseInitializer implements CommandLineRunner {
         }
         if (seededCount > 0) {
             log.info("StockSense DatabaseInitializer: Successfully initialized {} location stock balance(s) in default location.", seededCount);
+        }
+
+        // 4. Ensure Default Manager and Worker accounts
+        if (userRepository.findByEmailIgnoreCase("manager@stocksense.io").isEmpty()) {
+            com.stocksense.auth.User manager = new com.stocksense.auth.User(
+                    "manager@stocksense.io",
+                    passwordEncoder.encode("ManagerPassword123!"),
+                    "StockSense Manager",
+                    com.stocksense.auth.User.ROLE_MANAGER
+            );
+            userRepository.save(manager);
+            log.info("StockSense DatabaseInitializer: Seeded default MANAGER user 'manager@stocksense.io'.");
+        }
+
+        if (userRepository.findByEmailIgnoreCase("worker@stocksense.io").isEmpty()) {
+            com.stocksense.auth.User worker = new com.stocksense.auth.User(
+                    "worker@stocksense.io",
+                    passwordEncoder.encode("WorkerPassword123!"),
+                    "Warehouse Worker",
+                    com.stocksense.auth.User.ROLE_WORKER
+            );
+            userRepository.save(worker);
+            log.info("StockSense DatabaseInitializer: Seeded default WORKER user 'worker@stocksense.io'.");
         }
 
         log.info("StockSense DatabaseInitializer: Initialization complete.");

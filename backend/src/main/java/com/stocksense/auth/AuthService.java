@@ -4,6 +4,7 @@ import com.stocksense.auth.dto.*;
 import com.stocksense.common.exception.ConflictException;
 import com.stocksense.common.exception.DuplicateResourceException;
 import com.stocksense.common.exception.ResourceNotFoundException;
+import com.stocksense.common.exception.UnauthorizedException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -46,7 +47,8 @@ public class AuthService {
         }
 
         String passwordHash = passwordEncoder.encode(request.getPassword());
-        User user = new User(email, passwordHash, request.getFullName().trim(), "USER");
+        // Normal public registrations are always WORKER role. Users cannot self-assign MANAGER.
+        User user = new User(email, passwordHash, request.getFullName().trim(), User.ROLE_WORKER);
         User savedUser = userRepository.save(user);
 
         String token = tokenService.generateToken(savedUser.getId(), savedUser.getEmail(), savedUser.getRole());
@@ -57,10 +59,10 @@ public class AuthService {
     public AuthResponse login(LoginRequest request) {
         String email = request.getEmail().trim().toLowerCase();
         User user = userRepository.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> new ConflictException("Invalid email or password"));
+                .orElseThrow(() -> new UnauthorizedException("Invalid email or password"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-            throw new ConflictException("Invalid email or password");
+            throw new UnauthorizedException("Invalid email or password");
         }
 
         String token = tokenService.generateToken(user.getId(), user.getEmail(), user.getRole());
@@ -92,7 +94,7 @@ public class AuthService {
             return;
         }
 
-        // Check cooldown from latest token
+        // Check cooldown from latest unused token
         Optional<PasswordResetToken> latestTokenOpt = passwordResetTokenRepository
                 .findFirstByEmailIgnoreCaseAndUsedFalseOrderByCreatedAtDesc(email);
 
@@ -115,8 +117,38 @@ public class AuthService {
         );
         passwordResetTokenRepository.save(resetToken);
 
-        // Send email with OTP (or fallback to log)
+        // Send email with OTP (real SMTP or explicit console mode)
         emailNotificationService.sendPasswordResetOtp(email, otp);
+    }
+
+    @Transactional
+    public void verifyOtp(String email, String otp) {
+        String normalizedEmail = email.trim().toLowerCase();
+        PasswordResetToken resetToken = passwordResetTokenRepository
+                .findFirstByEmailIgnoreCaseAndUsedFalseOrderByCreatedAtDesc(normalizedEmail)
+                .orElseThrow(() -> new UnauthorizedException("No active password reset request found for this email"));
+
+        // Check expiration
+        if (resetToken.getExpiryTime().isBefore(LocalDateTime.now())) {
+            throw new UnauthorizedException("The verification code has expired. Please request a new one.");
+        }
+
+        // Check attempt limit
+        if (resetToken.getAttemptCount() >= MAX_OTP_ATTEMPTS) {
+            throw new UnauthorizedException("Maximum verification attempts exceeded. Please request a new code.");
+        }
+
+        resetToken.setAttemptCount(resetToken.getAttemptCount() + 1);
+
+        // Verify OTP
+        if (!passwordEncoder.matches(otp.trim(), resetToken.getOtpHash())) {
+            passwordResetTokenRepository.save(resetToken);
+            int remaining = MAX_OTP_ATTEMPTS - resetToken.getAttemptCount();
+            throw new UnauthorizedException("Invalid verification code. Attempts remaining: " + Math.max(0, remaining));
+        }
+
+        resetToken.setVerified(true);
+        passwordResetTokenRepository.save(resetToken);
     }
 
     @Transactional
@@ -127,25 +159,26 @@ public class AuthService {
 
         PasswordResetToken resetToken = passwordResetTokenRepository
                 .findFirstByEmailIgnoreCaseAndUsedFalseOrderByCreatedAtDesc(email)
-                .orElseThrow(() -> new ConflictException("No active password reset request found for this email"));
+                .orElseThrow(() -> new UnauthorizedException("No active password reset request found for this email"));
 
         // Check expiration
         if (resetToken.getExpiryTime().isBefore(LocalDateTime.now())) {
-            throw new ConflictException("The password reset verification code has expired. Please request a new one.");
+            throw new UnauthorizedException("The password reset verification code has expired. Please request a new one.");
         }
 
-        // Check attempt limit
-        if (resetToken.getAttemptCount() >= MAX_OTP_ATTEMPTS) {
-            throw new ConflictException("Maximum verification attempts exceeded. Please request a new code.");
-        }
+        // If not already verified via /verify-otp, verify OTP now
+        if (!resetToken.isVerified()) {
+            if (resetToken.getAttemptCount() >= MAX_OTP_ATTEMPTS) {
+                throw new UnauthorizedException("Maximum verification attempts exceeded. Please request a new code.");
+            }
 
-        resetToken.setAttemptCount(resetToken.getAttemptCount() + 1);
+            resetToken.setAttemptCount(resetToken.getAttemptCount() + 1);
 
-        // Verify OTP
-        if (!passwordEncoder.matches(request.getOtp().trim(), resetToken.getOtpHash())) {
-            passwordResetTokenRepository.save(resetToken);
-            int remaining = MAX_OTP_ATTEMPTS - resetToken.getAttemptCount();
-            throw new ConflictException("Invalid verification code. Attempts remaining: " + Math.max(0, remaining));
+            if (!passwordEncoder.matches(request.getOtp().trim(), resetToken.getOtpHash())) {
+                passwordResetTokenRepository.save(resetToken);
+                int remaining = MAX_OTP_ATTEMPTS - resetToken.getAttemptCount();
+                throw new UnauthorizedException("Invalid verification code. Attempts remaining: " + Math.max(0, remaining));
+            }
         }
 
         // Mark OTP token as used (one-time use invariant)

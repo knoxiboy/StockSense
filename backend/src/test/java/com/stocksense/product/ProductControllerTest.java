@@ -37,6 +37,22 @@ class ProductControllerTest {
     @MockBean
     private ProductService productService;
 
+    @MockBean
+    private com.stocksense.auth.TokenService tokenService;
+
+    @Autowired
+    private org.springframework.web.context.WebApplicationContext webApplicationContext;
+
+    @org.junit.jupiter.api.BeforeEach
+    void setUp() {
+        when(tokenService.parseAndVerifyToken(any()))
+                .thenReturn(new com.stocksense.auth.TokenService.TokenPayload(1L, "manager@stocksense.io", "MANAGER"));
+        mockMvc = org.springframework.test.web.servlet.setup.MockMvcBuilders
+                .webAppContextSetup(webApplicationContext)
+                .defaultRequest(get("/").header("Authorization", "Bearer valid-manager-token"))
+                .build();
+    }
+
     @Test
     void testGetAllProducts() throws Exception {
         ProductResponse p = new ProductResponse();

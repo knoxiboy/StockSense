@@ -22,8 +22,11 @@ public class User {
     @Column(name = "full_name", nullable = false, length = 150)
     private String fullName;
 
+    public static final String ROLE_MANAGER = "MANAGER";
+    public static final String ROLE_WORKER = "WORKER";
+
     @Column(nullable = false, length = 50)
-    private String role = "USER";
+    private String role = ROLE_WORKER;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -38,7 +41,7 @@ public class User {
         this.email = email != null ? email.trim().toLowerCase() : null;
         this.passwordHash = passwordHash;
         this.fullName = fullName != null ? fullName.trim() : null;
-        this.role = role != null ? role.trim().toUpperCase() : "USER";
+        this.role = role != null ? role.trim().toUpperCase() : ROLE_WORKER;
     }
 
     @PrePersist
@@ -48,7 +51,7 @@ public class User {
         this.updatedAt = now;
         if (this.email != null) this.email = this.email.trim().toLowerCase();
         if (this.fullName != null) this.fullName = this.fullName.trim();
-        if (this.role == null) this.role = "USER";
+        if (this.role == null) this.role = ROLE_WORKER;
     }
 
     @PreUpdate

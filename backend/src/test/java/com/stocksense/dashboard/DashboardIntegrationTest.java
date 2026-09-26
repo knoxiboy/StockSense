@@ -18,6 +18,21 @@ class DashboardIntegrationTest {
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
+    private com.stocksense.auth.TokenService tokenService;
+
+    @Autowired
+    private org.springframework.web.context.WebApplicationContext webApplicationContext;
+
+    @org.junit.jupiter.api.BeforeEach
+    void setUp() {
+        String token = tokenService.generateToken(1L, "manager@stocksense.io", "MANAGER");
+        mockMvc = org.springframework.test.web.servlet.setup.MockMvcBuilders
+                .webAppContextSetup(webApplicationContext)
+                .defaultRequest(get("/").header("Authorization", "Bearer " + token))
+                .build();
+    }
+
     @Test
     void testGetDashboardStats() throws Exception {
         mockMvc.perform(get("/api/dashboard/stats"))

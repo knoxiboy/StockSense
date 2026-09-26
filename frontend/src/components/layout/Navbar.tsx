@@ -79,32 +79,47 @@ export const Navbar: React.FC<NavbarProps> = ({
           type="button"
           className="btn btn-secondary btn-sm"
           onClick={onOpenAuth}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+          style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+          title="Click to view profile or sign out"
         >
           {currentUser ? (
             <>
               <div
                 style={{
-                  width: '20px',
-                  height: '20px',
+                  width: '22px',
+                  height: '22px',
                   borderRadius: '50%',
-                  background: 'var(--primary)',
+                  background: currentUser.role === 'MANAGER' ? '#2563eb' : '#059669',
                   color: '#fff',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '0.7rem',
+                  fontSize: '0.75rem',
                   fontWeight: 700,
                 }}
               >
                 {currentUser.fullName.charAt(0).toUpperCase()}
               </div>
-              <span>{currentUser.fullName}</span>
+              <span style={{ fontWeight: 600 }}>{currentUser.fullName}</span>
+              <span
+                style={{
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  padding: '2px 6px',
+                  borderRadius: '10px',
+                  background: currentUser.role === 'MANAGER' ? 'rgba(59, 130, 246, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                  color: currentUser.role === 'MANAGER' ? '#60a5fa' : '#34d399',
+                  border: `1px solid ${currentUser.role === 'MANAGER' ? 'rgba(59, 130, 246, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`,
+                  letterSpacing: '0.04em'
+                }}
+              >
+                {currentUser.role}
+              </span>
             </>
           ) : (
             <>
               <LogIn size={14} />
-              <span>Sign In / Profile</span>
+              <span>Sign In</span>
             </>
           )}
         </button>

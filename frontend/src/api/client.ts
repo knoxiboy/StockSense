@@ -77,7 +77,22 @@ apiClient.interceptors.response.use(
     const errorTitle = data?.error || `HTTP ${status}`;
     const path = data?.path;
 
-    // 2. HTTP 400 Validation / Bad Request
+    // 2. HTTP 401 Unauthorized (Session expired or unauthenticated)
+    if (status === 401) {
+      localStorage.removeItem('stocksense_auth_token');
+      localStorage.removeItem('stocksense_auth_user');
+      window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+      const message = backendMsg || 'Session expired or authentication invalid. Please log in again.';
+      return Promise.reject(new ApiError(401, message, 'Unauthorized', undefined, path));
+    }
+
+    // 3. HTTP 403 Forbidden (Role access denied)
+    if (status === 403) {
+      const message = backendMsg || 'Access denied: Insufficient privileges for this action.';
+      return Promise.reject(new ApiError(403, message, 'Forbidden', undefined, path));
+    }
+
+    // 4. HTTP 400 Validation / Bad Request
     if (status === 400) {
       let message = backendMsg || 'Invalid request parameters or payload.';
       if (validationErrors && Object.keys(validationErrors).length > 0) {

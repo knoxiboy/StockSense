@@ -32,6 +32,9 @@ public class PasswordResetToken {
     @Column(nullable = false)
     private boolean used = false;
 
+    @Column(nullable = false)
+    private boolean verified = false;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -45,6 +48,7 @@ public class PasswordResetToken {
         this.attemptCount = 0;
         this.lastSentAt = LocalDateTime.now();
         this.used = false;
+        this.verified = false;
         this.createdAt = LocalDateTime.now();
     }
 
@@ -102,6 +106,14 @@ public class PasswordResetToken {
 
     public void setUsed(boolean used) {
         this.used = used;
+    }
+
+    public boolean isVerified() {
+        return verified;
+    }
+
+    public void setVerified(boolean verified) {
+        this.verified = verified;
     }
 
     public LocalDateTime getCreatedAt() {

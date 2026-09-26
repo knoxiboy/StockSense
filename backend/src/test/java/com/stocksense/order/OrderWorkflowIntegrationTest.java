@@ -20,6 +20,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -47,11 +48,23 @@ class OrderWorkflowIntegrationTest {
     @Autowired
     private LocationRepository locationRepository;
 
+    @Autowired
+    private com.stocksense.auth.TokenService tokenService;
+
+    @Autowired
+    private org.springframework.web.context.WebApplicationContext webApplicationContext;
+
     private Product product;
     private Location location;
 
     @BeforeEach
     void setUp() {
+        String token = tokenService.generateToken(1L, "manager@stocksense.io", "MANAGER");
+        mockMvc = org.springframework.test.web.servlet.setup.MockMvcBuilders
+                .webAppContextSetup(webApplicationContext)
+                .defaultRequest(get("/").header("Authorization", "Bearer " + token))
+                .build();
+
         Warehouse wh = warehouseRepository.findByCode("WH-ORD-TEST").orElseGet(() ->
                 warehouseRepository.save(new Warehouse("Order WH", "WH-ORD-TEST", "Order Zone")));
 

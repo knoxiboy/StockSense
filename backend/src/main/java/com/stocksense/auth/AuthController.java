@@ -1,7 +1,7 @@
 package com.stocksense.auth;
 
 import com.stocksense.auth.dto.*;
-import com.stocksense.common.exception.ConflictException;
+import com.stocksense.common.exception.UnauthorizedException;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -58,6 +58,12 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("message", "If an account exists with this email, a verification code has been sent."));
     }
 
+    @PostMapping("/verify-otp")
+    public ResponseEntity<Map<String, String>> verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
+        authService.verifyOtp(request.getEmail(), request.getOtp());
+        return ResponseEntity.ok(Map.of("message", "Verification code verified successfully."));
+    }
+
     @PostMapping("/reset-password")
     public ResponseEntity<Map<String, String>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         authService.resetPassword(request);
@@ -66,12 +72,12 @@ public class AuthController {
 
     private TokenService.TokenPayload extractAndVerify(String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new ConflictException("Missing or invalid Authorization header");
+            throw new UnauthorizedException("Missing or invalid Authorization header");
         }
         String token = authHeader.substring(7).trim();
         TokenService.TokenPayload payload = tokenService.parseAndVerifyToken(token);
         if (payload == null) {
-            throw new ConflictException("Session expired or token invalid. Please log in again.");
+            throw new UnauthorizedException("Session expired or token invalid. Please log in again.");
         }
         return payload;
     }

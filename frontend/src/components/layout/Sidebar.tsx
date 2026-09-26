@@ -167,14 +167,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div
             style={{
               width: '28px',
-              height: '28px',
+              height: '32px',
               borderRadius: '50%',
-              background: currentUser ? 'var(--primary)' : 'var(--text-muted)',
+              background: currentUser ? (currentUser.role === 'MANAGER' ? '#2563eb' : '#059669') : 'var(--text-muted)',
               color: '#fff',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '0.8rem',
+              fontSize: '0.85rem',
               fontWeight: 700,
             }}
           >
@@ -184,15 +184,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div style={{ fontSize: '0.82rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {currentUser ? currentUser.fullName : 'Account / Login'}
             </div>
-            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-              {currentUser ? currentUser.role : 'Click to authenticate'}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+              {currentUser ? (
+                <span style={{
+                  fontSize: '0.68rem',
+                  fontWeight: 700,
+                  padding: '1px 5px',
+                  borderRadius: '4px',
+                  background: currentUser.role === 'MANAGER' ? 'rgba(59, 130, 246, 0.2)' : 'rgba(16, 185, 129, 0.2)',
+                  color: currentUser.role === 'MANAGER' ? '#60a5fa' : '#34d399',
+                  letterSpacing: '0.04em'
+                }}>
+                  {currentUser.role}
+                </span>
+              ) : (
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Click to authenticate</span>
+              )}
             </div>
           </div>
         </div>
 
         <div className="system-status">
-          <span className="status-dot"></span>
-          <span>Backend Connected • Live</span>
         </div>
       </div>
     </aside>

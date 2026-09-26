@@ -20,6 +20,7 @@ import java.math.BigDecimal;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -52,12 +53,24 @@ class InternalTransferIntegrationTest {
     @Autowired
     private StockOperationService stockOperationService;
 
+    @Autowired
+    private com.stocksense.auth.TokenService tokenService;
+
+    @Autowired
+    private org.springframework.web.context.WebApplicationContext webApplicationContext;
+
     private Product product;
     private Location sourceLoc;
     private Location destLoc;
 
     @BeforeEach
     void setUp() {
+        String token = tokenService.generateToken(1L, "manager@stocksense.io", "MANAGER");
+        mockMvc = org.springframework.test.web.servlet.setup.MockMvcBuilders
+                .webAppContextSetup(webApplicationContext)
+                .defaultRequest(get("/").header("Authorization", "Bearer " + token))
+                .build();
+
         Warehouse wh = warehouseRepository.findByCode("WH-TR-TEST").orElseGet(() ->
                 warehouseRepository.save(new Warehouse("Transfer WH", "WH-TR-TEST", "Transfer Zone")));
 

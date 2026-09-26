@@ -53,10 +53,22 @@ class StockLedgerIntegrationTest {
     @Autowired
     private StockLedgerRepository stockLedgerRepository;
 
+    @Autowired
+    private com.stocksense.auth.TokenService tokenService;
+
+    @Autowired
+    private org.springframework.web.context.WebApplicationContext webApplicationContext;
+
     private Product testProduct;
 
     @BeforeEach
     void setUp() {
+        String token = tokenService.generateToken(1L, "manager@stocksense.io", "MANAGER");
+        mockMvc = org.springframework.test.web.servlet.setup.MockMvcBuilders
+                .webAppContextSetup(webApplicationContext)
+                .defaultRequest(get("/").header("Authorization", "Bearer " + token))
+                .build();
+
         stockLedgerRepository.deleteAll();
         stockOperationRepository.deleteAll();
         stockBalanceRepository.deleteAll();
